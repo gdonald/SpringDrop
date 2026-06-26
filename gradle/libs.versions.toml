@@ -1,0 +1,13 @@
+[versions]
+springBoot = "4.1.0"
+dependencyManagement = "1.1.7"
+jsoup = "1.22.2"
+archunit = "1.4.2"
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
+dependency-management = { id = "io.spring.dependency-management", version.ref = "dependencyManagement" }
+
+[libraries]
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }

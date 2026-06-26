@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: springdrop
+  threads:
+    virtual:
+      enabled: true
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+  docker:
+    compose:
+      enabled: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

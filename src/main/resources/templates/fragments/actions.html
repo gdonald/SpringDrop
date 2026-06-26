@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Edit controls render as buttons, never as outline-style buttons. -->
+<th:block th:fragment="edit(href)">
+  <a th:href="${href}" class="btn btn-secondary btn-sm">Edit</a>
+</th:block>
+</body>
+</html>

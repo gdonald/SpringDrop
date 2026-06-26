@@ -19,6 +19,16 @@
 *.tar.gz
 *.rar
 
+# Keep the committed Gradle wrapper jar.
+!gradle/wrapper/gradle-wrapper.jar
+
+# Build output and dependencies
+.gradle/
+build/
+bin/
+node_modules/
+coverage/
+
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
