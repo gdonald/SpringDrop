@@ -29,7 +29,7 @@ fi
 
 if $run_backend; then
   echo "==> Backend: tests + coverage gate"
-  ./gradlew --console=plain test jacocoTestCoverageVerification
+  ./gradlew --console=plain test coverageGate
 fi
 
 if $run_frontend; then

@@ -1,5 +1,4 @@
 import org.springframework.boot.gradle.tasks.bundling.BootBuildImage
-import java.math.BigDecimal
 
 plugins {
     java
@@ -27,6 +26,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-jooq")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-flyway")
+    implementation("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")
 
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
@@ -41,16 +42,9 @@ dependencies {
     testImplementation(libs.archunit.junit5)
 }
 
-// Classes that carry no testable branches and are excluded from the coverage gate.
-val coverageExclusions = listOf(
-    "dev/springdrop/SpringDropApplication.class",
-)
-
-fun measuredClassDirs() = files(
-    sourceSets.main.get().output.classesDirs.map { dir ->
-        fileTree(dir) { exclude(coverageExclusions) }
-    },
-)
+// The bootstrap class is the one class excluded from the coverage gate; it has no
+// testable branches.
+val coverageExclusions = listOf("dev.springdrop/SpringDropApplication")
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
@@ -58,29 +52,10 @@ tasks.withType<Test>().configureEach {
 
 tasks.jacocoTestReport {
     dependsOn(tasks.test)
-    classDirectories.setFrom(measuredClassDirs())
     reports {
         xml.required = true
         html.required = true
-    }
-}
-
-tasks.jacocoTestCoverageVerification {
-    dependsOn(tasks.test)
-    classDirectories.setFrom(measuredClassDirs())
-    violationRules {
-        rule {
-            limit {
-                counter = "LINE"
-                value = "COVEREDRATIO"
-                minimum = BigDecimal.ONE
-            }
-            limit {
-                counter = "BRANCH"
-                value = "COVEREDRATIO"
-                minimum = BigDecimal.ONE
-            }
-        }
+        csv.required = true
     }
 }
 
@@ -88,8 +63,42 @@ tasks.test {
     finalizedBy(tasks.jacocoTestReport)
 }
 
+// Gate on the JaCoCo CSV report: every measured class must be 100% line and branch
+// covered. The CSV is parsed directly because Gradle's jacocoTestCoverageVerification
+// task reports empty data under this toolchain. Columns: 0 GROUP, 1 PACKAGE, 2 CLASS,
+// 5 BRANCH_MISSED, 7 LINE_MISSED.
+tasks.register("coverageGate") {
+    dependsOn(tasks.jacocoTestReport)
+    val csvFile = layout.buildDirectory.file("reports/jacoco/test/jacocoTestReport.csv")
+    val excluded = coverageExclusions
+    doLast {
+        val csv = csvFile.get().asFile
+        if (!csv.exists()) {
+            throw GradleException("Coverage gate: report not found at $csv")
+        }
+        val failures = csv.readLines().drop(1).mapNotNull { row ->
+            val cols = row.split(",")
+            val fqcn = cols[1] + "/" + cols[2]
+            val branchMissed = cols[5].toInt()
+            val lineMissed = cols[7].toInt()
+            if (fqcn !in excluded && (branchMissed > 0 || lineMissed > 0)) {
+                "$fqcn: $lineMissed line(s), $branchMissed branch(es) uncovered"
+            } else {
+                null
+            }
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(
+                "Coverage gate failed (100% line and branch required):\n  " +
+                    failures.joinToString("\n  "),
+            )
+        }
+        logger.lifecycle("Coverage gate: 100% line and branch on all measured classes.")
+    }
+}
+
 tasks.check {
-    dependsOn(tasks.jacocoTestCoverageVerification)
+    dependsOn("coverageGate")
 }
 
 tasks.named<BootBuildImage>("bootBuildImage") {

@@ -8,6 +8,8 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: none
+  flyway:
+    locations: classpath:db/migration/core
   docker:
     compose:
       enabled: false
