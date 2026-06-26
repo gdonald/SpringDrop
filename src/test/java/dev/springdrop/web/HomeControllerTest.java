@@ -4,16 +4,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import dev.springdrop.support.AbstractIntegrationTest;
 import dev.springdrop.support.BootstrapAssertions;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(HomeController.class)
-class HomeControllerTest {
+@SpringBootTest
+@AutoConfigureMockMvc
+class HomeControllerTest extends AbstractIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;

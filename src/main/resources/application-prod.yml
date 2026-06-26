@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: ${SPRINGDROP_DB_URL}
+    username: ${SPRINGDROP_DB_USERNAME}
+    password: ${SPRINGDROP_DB_PASSWORD}
+  data:
+    redis:
+      url: ${SPRINGDROP_REDIS_URL:redis://localhost:6379}
+  mail:
+    host: ${SPRINGDROP_MAIL_HOST:localhost}
+    port: ${SPRINGDROP_MAIL_PORT:25}
+logging:
+  structured:
+    format:
+      console: ecs
