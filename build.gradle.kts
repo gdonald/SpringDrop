@@ -31,8 +31,6 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")
 
-    developmentOnly("org.springframework.boot:spring-boot-docker-compose")
-
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
@@ -46,6 +44,12 @@ dependencies {
 // The bootstrap class is the one class excluded from the coverage gate; it has no
 // testable branches.
 val coverageExclusions = listOf("dev.springdrop/SpringDropApplication")
+
+tasks.withType<JavaCompile>().configureEach {
+    // Retain parameter names so the entity argument resolver can match a method
+    // parameter to its path variable by name.
+    options.compilerArgs.add("-parameters")
+}
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
@@ -103,8 +107,8 @@ tasks.check {
 }
 
 tasks.named<BootRun>("bootRun") {
-    // Local dev runs under the dev profile, which starts the docker-compose stack
-    // (Postgres, Redis, Mailpit) and wires it in through @ServiceConnection.
+    // Local dev runs under the dev profile, which targets the native local
+    // Postgres (and Mailpit when mail lands), no containers.
     systemProperty("spring.profiles.active", "dev")
 }
 

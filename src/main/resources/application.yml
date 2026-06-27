@@ -10,9 +10,6 @@ spring:
       ddl-auto: none
   flyway:
     locations: classpath:db/migration/core
-  docker:
-    compose:
-      enabled: false
 management:
   endpoints:
     web:

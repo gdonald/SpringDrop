@@ -1,6 +1,7 @@
+# Local development targets native services on your machine (no containers).
+# Override any of these with environment variables if your setup differs.
 spring:
-  docker:
-    compose:
-      enabled: true
-      file: compose.yaml
-      lifecycle-management: start-and-stop
+  datasource:
+    url: ${SPRINGDROP_DB_URL:jdbc:postgresql://localhost:5432/springdrop}
+    username: ${SPRINGDROP_DB_USERNAME:springdrop}
+    password: ${SPRINGDROP_DB_PASSWORD:springdrop}

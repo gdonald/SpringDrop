@@ -1,3 +1,6 @@
+# Optional. Local development targets native services by default; this file is
+# only for running the dependencies in containers if you prefer. Start with
+# `docker compose up -d` and point the app at the offset ports below.
 services:
   postgres:
     image: postgres:17-alpine
