@@ -1,0 +1,6 @@
+name: widgets
+label: Widgets
+description: A module with a lifecycle that owns a table.
+version: "1.0"
+dependencies:
+  - foundation

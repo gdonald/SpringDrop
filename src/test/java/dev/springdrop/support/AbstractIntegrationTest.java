@@ -1,6 +1,8 @@
 package dev.springdrop.support;
 
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -18,5 +20,13 @@ public abstract class AbstractIntegrationTest {
 
     static {
         POSTGRES.start();
+    }
+
+    // Many cached @SpringBootTest contexts share this one container; keep each
+    // context's connection pool small so their total stays under Postgres'
+    // connection limit.
+    @DynamicPropertySource
+    static void datasourcePool(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.hikari.maximum-pool-size", () -> 2);
     }
 }

@@ -5,3 +5,5 @@ plugins {
 }
 
 rootProject.name = "springdrop"
+
+include(":modules:example")

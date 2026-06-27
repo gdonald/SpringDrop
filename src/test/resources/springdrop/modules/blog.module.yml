@@ -1,0 +1,7 @@
+name: blog
+label: Blog
+description: Depends on content and foundation.
+version: "1.0"
+dependencies:
+  - content
+  - foundation

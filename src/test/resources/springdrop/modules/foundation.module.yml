@@ -1,0 +1,4 @@
+name: foundation
+label: Foundation
+description: Base module with no dependencies.
+version: "1.0"

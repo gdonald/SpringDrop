@@ -27,5 +27,24 @@ that supersedes it once roles exist.
 
 ## Hook-to-event mapping
 
-The event bus replaces Drupal hooks. The mapping table lands with the event-bus work
-and is maintained here.
+The event bus is Spring's `ApplicationEventPublisher`. A module reacts to an event
+with `@EventListener` and orders its handlers with `@Order`; several modules can
+listen to the same event. Drupal hooks map to events as follows.
+
+| Drupal hook | SpringDrop event |
+| --- | --- |
+| `hook_entity_presave` | `EntityEvent` with phase `PRESAVE` |
+| `hook_ENTITY_TYPE_insert` | `EntityEvent` with phase `INSERT` |
+| `hook_entity_update` | `EntityEvent` with phase `UPDATE` |
+| `hook_entity_delete` | `EntityEvent` with phase `DELETE` |
+| `hook_entity_load` | `EntityEvent` with phase `LOAD` |
+| `hook_form_alter` | a `FormAlterEvent extends AlterEvent` (lands with the Form API) |
+| `hook_query_alter` | a `QueryAlterEvent extends AlterEvent` (lands with the entity query) |
+| `hook_entity_access` | an access `AlterEvent` (lands with the access system) |
+
+### Alter events
+
+Alter hooks become `AlterEvent` subclasses. The event carries a mutable subject (a
+form, a query's conditions, a render array); listeners modify it in place, and the
+caller uses the mutated subject after publishing. Concrete alter events are added by
+the subsystem that owns the subject.
