@@ -1,4 +1,5 @@
 import org.springframework.boot.gradle.tasks.bundling.BootBuildImage
+import org.springframework.boot.gradle.tasks.run.BootRun
 
 plugins {
     java
@@ -99,6 +100,12 @@ tasks.register("coverageGate") {
 
 tasks.check {
     dependsOn("coverageGate")
+}
+
+tasks.named<BootRun>("bootRun") {
+    // Local dev runs under the dev profile, which starts the docker-compose stack
+    // (Postgres, Redis, Mailpit) and wires it in through @ServiceConnection.
+    systemProperty("spring.profiles.active", "dev")
 }
 
 tasks.named<BootBuildImage>("bootBuildImage") {

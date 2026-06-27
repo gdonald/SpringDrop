@@ -5,15 +5,27 @@ services:
       POSTGRES_DB: springdrop
       POSTGRES_USER: springdrop
       POSTGRES_PASSWORD: springdrop
+    # Host port offset to 55432 to avoid colliding with a native Postgres on 5432.
+    # spring-boot-docker-compose discovers the mapped port via @ServiceConnection.
     ports:
-      - "5432:5432"
+      - "55432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U springdrop -d springdrop"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
 
   mailpit:
     image: axllent/mailpit:v1.21
