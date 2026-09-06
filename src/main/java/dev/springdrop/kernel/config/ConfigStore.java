@@ -62,6 +62,19 @@ public class ConfigStore {
         return objectMapper.convertValue(merged, type);
     }
 
+    /** The names of every stored object under a prefix, as {@code prefix.<rest>}. */
+    public List<String> listNames(String prefix) {
+        return dsl.select(NAME).from(CONFIG)
+                .where(NAME.like(prefix + ".%"))
+                .orderBy(NAME)
+                .fetch(NAME);
+    }
+
+    public void delete(String name) {
+        dsl.deleteFrom(CONFIG).where(NAME.eq(name)).execute();
+        events.publishEvent(new ConfigChangedEvent(name));
+    }
+
     public void save(String name, Object value) {
         JSONB json = JSONB.valueOf(objectMapper.writeValueAsString(value));
         dsl.insertInto(CONFIG).columns(NAME, DATA).values(name, json)

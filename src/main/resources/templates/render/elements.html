@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div th:fragment="container" th:id="${attributes['id']}" th:classappend="${attributes['class']}"
+     th:utext="${children}">children</div>
+
+<div th:fragment="text" th:id="${attributes['id']}" th:classappend="${attributes['class']}"
+     th:text="${value}">text</div>
+
+<div th:fragment="markup" th:id="${attributes['id']}" th:classappend="${attributes['class']}"
+     th:utext="${value}">markup</div>
+
+<a th:fragment="link" th:id="${attributes['id']}" th:classappend="${attributes['class']}"
+   th:href="${url}" th:text="${label}">link</a>
+
+<ul th:fragment="list" th:id="${attributes['id']}" th:classappend="${attributes['class']}"
+    th:utext="${children}">
+</ul>
+
+<li th:fragment="listItem" th:id="${attributes['id']}" th:classappend="${attributes['class']}"
+    th:utext="${children}">
+</li>
+
+</body>
+</html>

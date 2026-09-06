@@ -11,18 +11,30 @@ import java.util.function.Supplier;
  */
 public class PluginManager<T> {
 
-    private final Map<String, Supplier<T>> plugins;
+    private final Class<T> contract;
+    private final Map<String, Supplier<?>> plugins;
 
-    PluginManager(Map<String, Supplier<T>> plugins) {
+    PluginManager(Class<T> contract, Map<String, Supplier<?>> plugins) {
+        this.contract = contract;
         this.plugins = plugins;
     }
 
+    /**
+     * The same plugins seen as another contract. The registry keeps one manager
+     * per contract and hands it back typed through this, which shares the index
+     * rather than copying it. Each instance is checked against the contract as
+     * it is resolved.
+     */
+    <R> PluginManager<R> as(Class<R> other) {
+        return new PluginManager<>(other, plugins);
+    }
+
     public T get(String id) {
-        Supplier<T> supplier = plugins.get(id);
+        Supplier<?> supplier = plugins.get(id);
         if (supplier == null) {
             throw new IllegalArgumentException("No plugin registered with id '" + id + "'");
         }
-        return supplier.get();
+        return contract.cast(supplier.get());
     }
 
     public boolean has(String id) {

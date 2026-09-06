@@ -35,10 +35,9 @@ public class EntityArgumentResolver implements HandlerMethodArgumentResolver {
             NativeWebRequest webRequest,
             WebDataBinderFactory binderFactory) {
 
-        @SuppressWarnings("unchecked")
-        Map<String, String> uriVariables = (Map<String, String>) webRequest.getAttribute(
+        Map<?, ?> uriVariables = (Map<?, ?>) webRequest.getAttribute(
                 HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST);
-        String id = uriVariables.get(parameter.getParameterName());
+        String id = (String) uriVariables.get(parameter.getParameterName());
 
         return registry.load(parameter.getParameterType(), id)
                 .orElseThrow(() -> new EntityNotFoundException(

@@ -30,6 +30,9 @@ dependencies {
 
 tasks.withType<JavaCompile>().configureEach {
     options.compilerArgs.add("-parameters")
+    // Warnings are errors: a new one has to be fixed rather than left to pile up.
+    options.compilerArgs.add("-Xlint:all")
+    options.compilerArgs.add("-Werror")
 }
 
 tasks.withType<Test>().configureEach {

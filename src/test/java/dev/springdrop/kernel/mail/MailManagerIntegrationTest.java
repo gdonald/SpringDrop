@@ -2,16 +2,16 @@ package dev.springdrop.kernel.mail;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.springdrop.kernel.config.ConfigStore;
+import dev.springdrop.kernel.site.SiteInformation;
 import dev.springdrop.kernel.token.TokenContext;
-import dev.springdrop.kernel.token.TokenProvider;
 import dev.springdrop.support.AbstractIntegrationTest;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 
 @SpringBootTest
 class MailManagerIntegrationTest extends AbstractIntegrationTest {
@@ -22,9 +22,19 @@ class MailManagerIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private CollectingMailBackend backend;
 
+    @Autowired
+    private ConfigStore configStore;
+
     @BeforeEach
-    void clear() {
+    void namedSiteAndEmptyMailbox() {
         backend.clear();
+        configStore.save(SiteInformation.CONFIG_NAME, new SiteInformation(
+                "My Site", "", "site@example.com", "https://example.com"));
+    }
+
+    @AfterEach
+    void restoreDefaultSiteInformation() {
+        configStore.save(SiteInformation.CONFIG_NAME, SiteInformation.DEFAULTS);
     }
 
     @Test
@@ -40,24 +50,5 @@ class MailManagerIntegrationTest extends AbstractIntegrationTest {
             assertThat(message.subject()).isEqualTo("Welcome to My Site");
             assertThat(message.body()).isEqualTo("Thanks for joining My Site.");
         });
-    }
-
-    @TestConfiguration
-    static class TestTokens {
-
-        @Bean
-        TokenProvider siteTokens() {
-            return new TokenProvider() {
-                @Override
-                public String type() {
-                    return "site";
-                }
-
-                @Override
-                public String resolve(String name, TokenContext context) {
-                    return "name".equals(name) ? "My Site" : null;
-                }
-            };
-        }
     }
 }

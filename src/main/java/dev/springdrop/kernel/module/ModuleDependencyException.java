@@ -6,6 +6,8 @@ package dev.springdrop.kernel.module;
  */
 public class ModuleDependencyException extends RuntimeException {
 
+    private static final long serialVersionUID = 1L;
+
     public ModuleDependencyException(String message) {
         super(message);
     }

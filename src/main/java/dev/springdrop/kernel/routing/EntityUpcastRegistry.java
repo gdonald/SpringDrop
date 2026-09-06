@@ -18,7 +18,7 @@ public class EntityUpcastRegistry {
 
     public EntityUpcastRegistry(List<EntityUpcaster<?>> upcasters) {
         this.upcasters = upcasters.stream()
-                .collect(Collectors.toMap(EntityUpcaster::entityType, Function.identity()));
+                .collect(Collectors.toMap(upcaster -> upcaster.entityType(), Function.identity()));
     }
 
     public boolean supports(Class<?> type) {

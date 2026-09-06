@@ -48,3 +48,36 @@ Alter hooks become `AlterEvent` subclasses. The event carries a mutable subject 
 form, a query's conditions, a render array); listeners modify it in place, and the
 caller uses the mutated subject after publishing. Concrete alter events are added by
 the subsystem that owns the subject.
+
+## Routes and access
+
+A module contributes routes with a `RouteRegistrar` bean returning `RouteDefinition`
+values. Three factories cover the cases:
+
+- `RouteDefinition.frontEnd(path, name, title)` for an open front-end route.
+- `RouteDefinition.admin(path, name, title, permission)` for an admin route behind a
+  permission.
+- `RouteDefinition.adminAction(path, name, title, permission)` for an admin route that
+  changes state on GET, such as an enable or delete link.
+
+`RouteAccessChecker` turns a request into an `AccessResult`: the decision plus the
+cache contexts it varies by, the cache tags that invalidate it, and how long it stays
+valid. A permission check carries the `user.permissions` context, and every decision
+about a registered route carries a `route:<name>` tag. The decision is left on the
+request under `RouteAuthorizationManager.ACCESS_RESULT_ATTRIBUTE` so the page cache
+can vary on the same metadata the decision was made from.
+
+### Action link tokens
+
+Spring Security's CSRF protection covers POST, PUT, PATCH, and DELETE. A route
+declared with `adminAction` changes state on GET, so it additionally requires a token
+in the `token` query parameter. `ActionLinkTokenService` signs the token with an HMAC
+over the link path and the requesting user's identity, using a key generated once and
+kept in state. Build the link with `tokenizedPath`:
+
+```java
+String href = actionLinkTokenService.tokenizedPath("/admin/modules/enable/blog");
+```
+
+A decision about an action link is never cached, since it depends on the token in the
+URL.

@@ -38,6 +38,11 @@ public class DateFormatService {
         return DateTimeFormatter.ofPattern(format.pattern(), Locale.ENGLISH).withZone(zone).format(instant);
     }
 
+    /** The timezone the site shows times in when the reader has none of their own. */
+    public ZoneId siteTimezone() {
+        return siteDefaultZone();
+    }
+
     private ZoneId siteDefaultZone() {
         SiteDateSettings settings = configStore.read(
                 "system.date", SiteDateSettings.class, new SiteDateSettings("UTC"));

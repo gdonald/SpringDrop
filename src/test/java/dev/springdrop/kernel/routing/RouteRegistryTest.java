@@ -15,13 +15,13 @@ class RouteRegistryTest {
     @Test
     void matchesAnExactPath() {
         assertThat(registry.match("/articles")).get()
-                .extracting(RouteDefinition::admin).isEqualTo(false);
+                .extracting(route -> route.admin()).isEqualTo(false);
     }
 
     @Test
     void matchesAnAntPattern() {
         assertThat(registry.match("/admin/content/node/1")).get()
-                .extracting(RouteDefinition::requiredPermission)
+                .extracting(route -> route.requiredPermission())
                 .isEqualTo("access content overview");
     }
 

@@ -21,7 +21,8 @@ public class ModuleDependencyResolver {
 
     public List<ModuleInfo> resolveInstallOrder(Collection<ModuleInfo> modules) {
         Map<String, ModuleInfo> byName = modules.stream()
-                .collect(Collectors.toMap(ModuleInfo::name, Function.identity(), (a, b) -> a, LinkedHashMap::new));
+                .collect(Collectors.toMap(info -> info.name(), Function.identity(),
+                        (first, second) -> first, LinkedHashMap::new));
 
         for (ModuleInfo module : modules) {
             for (String dependency : module.dependencies()) {

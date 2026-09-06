@@ -29,6 +29,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-jooq")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")
@@ -52,6 +53,9 @@ tasks.withType<JavaCompile>().configureEach {
     // Retain parameter names so the entity argument resolver can match a method
     // parameter to its path variable by name.
     options.compilerArgs.add("-parameters")
+    // Warnings are errors: a new one has to be fixed rather than left to pile up.
+    options.compilerArgs.add("-Xlint:all")
+    options.compilerArgs.add("-Werror")
 }
 
 tasks.withType<Test>().configureEach {
@@ -117,5 +121,18 @@ tasks.named<BootRun>("bootRun") {
 
 tasks.named<BootBuildImage>("bootBuildImage") {
     imageName = "springdrop:${project.version}"
-    environment = mapOf("BP_JVM_CDS_ENABLED" to "true")
+    // The Paketo builder turns the layered boot jar into a layered OCI image and,
+    // with CDS enabled, performs a training run whose archive is baked into the
+    // image. The training run has no database, so it is pointed at an unreachable
+    // datasource with Flyway off and the dialect fixed, which lets the context
+    // refresh without opening a connection.
+    environment = mapOf(
+        "BP_JVM_VERSION" to "25",
+        "BP_JVM_CDS_ENABLED" to "true",
+        "CDS_TRAINING_JAVA_TOOL_OPTIONS" to listOf(
+            "-Dspring.datasource.url=jdbc:postgresql://localhost:5432/springdrop",
+            "-Dspring.flyway.enabled=false",
+            "-Dspring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect",
+        ).joinToString(" "),
+    )
 }

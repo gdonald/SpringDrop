@@ -49,9 +49,12 @@ class PluginRegistryIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void cachesTheManagerPerType() {
-        assertThat(pluginRegistry.managerFor(Greeter.class))
-                .isSameAs(pluginRegistry.managerFor(Greeter.class));
+    void scansForAContractsPluginsOnceAndReusesWhatItFound() {
+        // The index is built by scanning the context, so asking twice hands back
+        // the same one rather than scanning again. The manager around it is a
+        // view, which is what lets the registry hold one index per contract.
+        assertThat(pluginRegistry.managerFor(Greeter.class).ids())
+                .isSameAs(pluginRegistry.managerFor(Greeter.class).ids());
     }
 
     @Test

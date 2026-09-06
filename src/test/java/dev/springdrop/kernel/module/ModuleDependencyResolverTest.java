@@ -21,7 +21,7 @@ class ModuleDependencyResolverTest {
                 module("content", "foundation"),
                 module("foundation")));
 
-        assertThat(order).extracting(ModuleInfo::name).containsExactly("foundation", "content", "blog");
+        assertThat(order).extracting(module -> module.name()).containsExactly("foundation", "content", "blog");
     }
 
     @Test
@@ -32,8 +32,20 @@ class ModuleDependencyResolverTest {
                 module("base"),
                 module("top", "left", "right")));
 
-        assertThat(order).extracting(ModuleInfo::name).hasSize(4);
+        assertThat(order).extracting(module -> module.name()).hasSize(4);
         assertThat(order.indexOf(byName(order, "base"))).isLessThan(order.indexOf(byName(order, "top")));
+    }
+
+    @Test
+    void aModuleDeclaredTwiceIsInstalledOnceAsItWasFirstDeclared() {
+        ModuleInfo first = module("blog", "content");
+        ModuleInfo second = module("blog");
+
+        List<ModuleInfo> order = resolver.resolveInstallOrder(List.of(
+                first, second, module("content")));
+
+        assertThat(order).extracting(module -> module.name()).containsExactly("content", "blog");
+        assertThat(byName(order, "blog")).isSameAs(first);
     }
 
     @Test

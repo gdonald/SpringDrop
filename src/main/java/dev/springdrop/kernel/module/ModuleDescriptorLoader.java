@@ -47,8 +47,10 @@ public class ModuleDescriptorLoader {
             throw new ModuleDependencyException("Failed to read module descriptor: " + resource.getDescription(), e);
         }
         Map<String, Object> data = new Yaml().load(content);
-        @SuppressWarnings("unchecked")
-        List<String> dependencies = (List<String>) data.getOrDefault("dependencies", List.of());
+        List<String> dependencies = new ArrayList<>();
+        if (data.get("dependencies") instanceof List<?> declared) {
+            declared.forEach(dependency -> dependencies.add(String.valueOf(dependency)));
+        }
         return new ModuleInfo(
                 (String) data.get("name"),
                 (String) data.get("label"),

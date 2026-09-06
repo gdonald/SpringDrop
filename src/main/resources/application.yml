@@ -15,3 +15,8 @@ management:
     web:
       exposure:
         include: health,info
+  health:
+    # An unreachable mail server does not make the site unhealthy: pages still
+    # render and content still saves, so mail stays out of the health rollup.
+    mail:
+      enabled: false

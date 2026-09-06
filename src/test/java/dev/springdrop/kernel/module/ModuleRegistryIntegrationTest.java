@@ -16,15 +16,15 @@ class ModuleRegistryIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void loadsTheDescriptorsFromTheClasspath() {
-        assertThat(moduleRegistry.all()).extracting(ModuleInfo::name)
+        assertThat(moduleRegistry.all()).extracting(module -> module.name())
                 .contains("foundation", "content", "blog");
         assertThat(moduleRegistry.find("blog")).get()
-                .extracting(ModuleInfo::label).isEqualTo("Blog");
+                .extracting(module -> module.label()).isEqualTo("Blog");
     }
 
     @Test
     void resolvesAnInstallOrderWithDependenciesFirst() {
-        List<String> order = moduleRegistry.installOrder().stream().map(ModuleInfo::name).toList();
+        List<String> order = moduleRegistry.installOrder().stream().map(module -> module.name()).toList();
 
         assertThat(order.indexOf("foundation")).isLessThan(order.indexOf("content"));
         assertThat(order.indexOf("content")).isLessThan(order.indexOf("blog"));

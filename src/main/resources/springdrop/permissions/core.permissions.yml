@@ -1,0 +1,20 @@
+administer site configuration:
+  title: Administer site configuration
+  description: Change how the site itself is set up, including its health endpoints.
+  restricted: true
+administer fields:
+  title: Administer fields
+  description: Add, change, and remove fields, and lay out forms and displays.
+  restricted: true
+administer permissions:
+  title: Administer permissions
+  description: Decide what each role may do, including roles more trusted than your own.
+  restricted: true
+administer users:
+  title: Administer users
+  description: Change what accounts may do, and close them.
+  restricted: true
+ban ip addresses:
+  title: Ban IP addresses
+  description: Refuse requests from an address before the site answers them.
+  restricted: true

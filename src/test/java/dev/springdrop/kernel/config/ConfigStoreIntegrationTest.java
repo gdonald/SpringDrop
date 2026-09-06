@@ -46,7 +46,7 @@ class ConfigStoreIntegrationTest extends AbstractIntegrationTest {
     void savingPublishesAChangeEvent() {
         configStore.save("system.site.event", new SiteInfo("Eventful", ""));
 
-        assertThat(events.stream(ConfigChangedEvent.class).map(ConfigChangedEvent::name))
+        assertThat(events.stream(ConfigChangedEvent.class).map(event -> event.name()))
                 .contains("system.site.event");
     }
 

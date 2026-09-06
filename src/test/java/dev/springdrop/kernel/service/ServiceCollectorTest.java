@@ -22,7 +22,7 @@ class ServiceCollectorTest {
                     ServiceCollector collector = context.getBean(ServiceCollector.class);
 
                     assertThat(collector.collect(Greeter.class))
-                            .extracting(Greeter::greet)
+                            .extracting(greeter -> greeter.greet())
                             .containsExactly("first", "second");
                 });
     }

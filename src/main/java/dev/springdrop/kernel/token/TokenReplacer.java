@@ -22,8 +22,10 @@ public class TokenReplacer {
     private final Map<String, TokenProvider> providers;
 
     public TokenReplacer(List<TokenProvider> providers) {
+        // Providers arrive in bean order, so the highest-priority provider of a
+        // type wins and a module can supersede a core provider by ordering ahead.
         this.providers = providers.stream()
-                .collect(Collectors.toMap(TokenProvider::type, Function.identity()));
+                .collect(Collectors.toMap(provider -> provider.type(), Function.identity(), (first, second) -> first));
     }
 
     public String replace(String text, TokenContext context) {

@@ -3,6 +3,7 @@ package dev.springdrop.kernel.schema;
 import java.util.List;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.Name;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Component;
 
@@ -22,13 +23,19 @@ public class SchemaManager {
     }
 
     public void createTable(String table, List<ColumnSpec> columns, String primaryKey) {
+        createTable(table, columns, List.of(primaryKey));
+    }
+
+    public void createTable(String table, List<ColumnSpec> columns, List<String> primaryKey) {
         Field<?>[] fields = columns.stream()
                 .map(column -> DSL.field(DSL.name(column.name()), column.dataType()))
                 .toArray(Field[]::new);
 
+        Name[] keyColumns = primaryKey.stream().map(DSL::name).toArray(Name[]::new);
+
         dsl.createTableIfNotExists(DSL.name(table))
                 .columns(fields)
-                .constraints(DSL.primaryKey(DSL.name(primaryKey)))
+                .constraints(DSL.primaryKey(keyColumns))
                 .execute();
     }
 
@@ -59,6 +66,17 @@ public class SchemaManager {
         } else {
             onStep.where(DSL.condition(whereCondition)).execute();
         }
+    }
+
+    /**
+     * A unique index over expressions rather than bare columns, which is how a
+     * name is kept unique whatever case it was typed in.
+     */
+    public void createUniqueIndex(String indexName, String table, List<String> expressions) {
+        Field<?>[] fields = expressions.stream().map(DSL::field).toArray(Field[]::new);
+        dsl.createUniqueIndexIfNotExists(DSL.name(indexName))
+                .on(DSL.table(DSL.name(table)), fields)
+                .execute();
     }
 
     public void dropTable(String table) {

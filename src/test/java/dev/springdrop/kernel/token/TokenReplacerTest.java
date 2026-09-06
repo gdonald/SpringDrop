@@ -38,6 +38,15 @@ class TokenReplacerTest {
     }
 
     @Test
+    void theFirstProviderOfATypeWins() {
+        TokenReplacer overridden = new TokenReplacer(List.of(
+                provider("site", name -> "Overriding Site"),
+                provider("site", name -> "Core Site")));
+
+        assertThat(overridden.replace("[site:name]", TokenContext.of(Map.of()))).isEqualTo("Overriding Site");
+    }
+
+    @Test
     void escapesValuesInSanitizeMode() {
         TokenContext sanitizing = new TokenContext(Map.of(), true, false);
         assertThat(replacer.replace("[danger:x]", sanitizing)).isEqualTo("&lt;b&gt;x&lt;/b&gt;");
@@ -53,6 +62,11 @@ class TokenReplacerTest {
             @Override
             public String resolve(String name, TokenContext context) {
                 return resolver.apply(name);
+            }
+
+            @Override
+            public List<TokenDefinition> availableTokens() {
+                return List.of();
             }
         };
     }

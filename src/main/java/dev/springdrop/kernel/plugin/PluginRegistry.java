@@ -22,19 +22,18 @@ public class PluginRegistry {
         this.context = context;
     }
 
-    @SuppressWarnings("unchecked")
     public <T> PluginManager<T> managerFor(Class<T> pluginType) {
         PluginManager<?> cached = cache.get(pluginType);
         if (cached != null) {
-            return (PluginManager<T>) cached;
+            return cached.as(pluginType);
         }
-        PluginManager<T> manager = build(pluginType);
+        PluginManager<?> manager = build(pluginType);
         cache.put(pluginType, manager);
-        return manager;
+        return manager.as(pluginType);
     }
 
-    private <T> PluginManager<T> build(Class<T> pluginType) {
-        Map<String, Supplier<T>> index = new LinkedHashMap<>();
+    private PluginManager<?> build(Class<?> pluginType) {
+        Map<String, Supplier<?>> index = new LinkedHashMap<>();
         for (String beanName : context.getBeanNamesForAnnotation(SpringDropPlugin.class)) {
             SpringDropPlugin annotation = context.findAnnotationOnBean(beanName, SpringDropPlugin.class);
             if (!pluginType.equals(annotation.type())) {
@@ -42,15 +41,14 @@ public class PluginRegistry {
             }
             register(index, beanName, annotation, pluginType);
         }
-        return new PluginManager<>(index);
+        return new PluginManager<>(pluginType, index);
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> void register(
-            Map<String, Supplier<T>> index, String beanName, SpringDropPlugin annotation, Class<T> pluginType) {
+    private void register(
+            Map<String, Supplier<?>> index, String beanName, SpringDropPlugin annotation, Class<?> pluginType) {
 
         if (DerivablePlugin.class.isAssignableFrom(context.getType(beanName))) {
-            DerivablePlugin<T> derivable = (DerivablePlugin<T>) context.getBean(beanName);
+            DerivablePlugin<?> derivable = (DerivablePlugin<?>) context.getBean(beanName);
             derivable.derivatives().forEach((suffix, instance) ->
                     index.put(annotation.id() + ":" + suffix, () -> instance));
         } else {

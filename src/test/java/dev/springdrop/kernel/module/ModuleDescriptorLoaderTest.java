@@ -61,7 +61,7 @@ class ModuleDescriptorLoaderTest {
         when(resolver.getResources(ModuleDescriptorLoader.LOCATION_PATTERN))
                 .thenReturn(new Resource[] {resource});
 
-        assertThat(loader.load()).extracting(ModuleInfo::name).containsExactly("a");
+        assertThat(loader.load()).extracting(module -> module.name()).containsExactly("a");
     }
 
     @Test

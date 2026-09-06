@@ -70,6 +70,13 @@ public class StateService {
                 .execute();
     }
 
+    /** Removes an expiring value, whether or not it had lapsed. */
+    public void removeExpiring(String collection, String key) {
+        dsl.deleteFrom(KEY_VALUE_EXPIRE)
+                .where(COLLECTION.eq(collection)).and(KEY.eq(key))
+                .execute();
+    }
+
     public <T> Optional<T> getExpiring(String collection, String key, Class<T> type) {
         Record record = dsl.select(VALUE, EXPIRES_AT).from(KEY_VALUE_EXPIRE)
                 .where(COLLECTION.eq(collection)).and(KEY.eq(key))

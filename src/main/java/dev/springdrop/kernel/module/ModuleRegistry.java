@@ -22,7 +22,7 @@ public class ModuleRegistry {
     public ModuleRegistry(ModuleDescriptorLoader loader, ModuleDependencyResolver resolver) {
         List<ModuleInfo> loaded = loader.load();
         this.modules = loaded.stream().collect(Collectors.toMap(
-                ModuleInfo::name, Function.identity(), (a, b) -> a, LinkedHashMap::new));
+                info -> info.name(), Function.identity(), (first, second) -> first, LinkedHashMap::new));
         this.installOrder = resolver.resolveInstallOrder(loaded);
     }
 

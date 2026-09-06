@@ -34,7 +34,7 @@ public class ModuleManager {
     public ModuleManager(ModuleRegistry registry, List<ModuleLifecycle> lifecycles, DSLContext dsl) {
         this.registry = registry;
         this.lifecycles = lifecycles.stream()
-                .collect(Collectors.toMap(ModuleLifecycle::moduleName, Function.identity()));
+                .collect(Collectors.toMap(hooks -> hooks.moduleName(), Function.identity()));
         this.dsl = dsl;
     }
 
@@ -53,10 +53,10 @@ public class ModuleManager {
         if (isInstalled(name)) {
             dsl.update(MODULE).set(ENABLED, true).where(NAME.eq(name)).execute();
         } else {
-            lifecycle.ifPresent(ModuleLifecycle::onInstall);
+            lifecycle.ifPresent(hooks -> hooks.onInstall());
             dsl.insertInto(MODULE).columns(NAME, ENABLED).values(name, true).execute();
         }
-        lifecycle.ifPresent(ModuleLifecycle::onEnable);
+        lifecycle.ifPresent(hooks -> hooks.onEnable());
     }
 
     public void disable(String name) {
@@ -64,7 +64,7 @@ public class ModuleManager {
         if (!isEnabled(name)) {
             return;
         }
-        Optional.ofNullable(lifecycles.get(name)).ifPresent(ModuleLifecycle::onDisable);
+        Optional.ofNullable(lifecycles.get(name)).ifPresent(hooks -> hooks.onDisable());
         dsl.update(MODULE).set(ENABLED, false).where(NAME.eq(name)).execute();
     }
 
@@ -73,7 +73,7 @@ public class ModuleManager {
         if (!isInstalled(name)) {
             return;
         }
-        Optional.ofNullable(lifecycles.get(name)).ifPresent(ModuleLifecycle::onUninstall);
+        Optional.ofNullable(lifecycles.get(name)).ifPresent(hooks -> hooks.onUninstall());
         dsl.deleteFrom(MODULE).where(NAME.eq(name)).execute();
     }
 

@@ -9,6 +9,8 @@ import org.springframework.web.server.ResponseStatusException;
  */
 public class EntityNotFoundException extends ResponseStatusException {
 
+    private static final long serialVersionUID = 1L;
+
     public EntityNotFoundException(String entityType, String id) {
         super(HttpStatus.NOT_FOUND, entityType + " '" + id + "' was not found");
     }
