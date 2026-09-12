@@ -33,7 +33,7 @@ class RoutingIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void frontEndRouteResolvesFrontEndTheme() throws Exception {
-        mockMvc.perform(get("/"))
+        mockMvc.perform(get("/things"))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("theme", ThemeResolver.FRONT_END));
     }
@@ -66,7 +66,9 @@ class RoutingIntegrationTest extends AbstractIntegrationTest {
 
         @Bean
         RouteRegistrar testRoutes() {
-            return () -> List.of(RouteDefinition.admin("/admin/things", "things", "Things", null));
+            return () -> List.of(
+                    RouteDefinition.admin("/admin/things", "admin_things", "Things", null),
+                    RouteDefinition.frontEnd("/things", "things", "Things"));
         }
 
         @Bean
@@ -85,11 +87,18 @@ class RoutingIntegrationTest extends AbstractIntegrationTest {
         }
 
         @Controller
-        static class AdminThingsController {
+        static class ThingsController {
+
             @GetMapping("/admin/things")
+            String administerThings(Model model) {
+                model.addAttribute("pageTitle", "Things");
+                return "routing/page";
+            }
+
+            @GetMapping("/things")
             String things(Model model) {
-                model.addAttribute("siteName", "Admin");
-                return "home";
+                model.addAttribute("pageTitle", "Things");
+                return "routing/page";
             }
         }
 

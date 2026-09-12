@@ -1,0 +1,7 @@
+<ul class="nav nav-tabs mb-3" th:if="${!tabs.isEmpty()}" xmlns:th="http://www.thymeleaf.org">
+  <li class="nav-item" th:each="tab : ${tabs}">
+    <a class="nav-link" th:classappend="${tab.active} ? 'active' : ''"
+       th:attr="aria-current=${tab.active} ? 'page' : null"
+       th:href="${tab.url}" th:text="${tab.label}">View</a>
+  </li>
+</ul>

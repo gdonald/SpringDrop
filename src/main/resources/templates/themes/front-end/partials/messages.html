@@ -1,0 +1,4 @@
+<div th:if="${!messages.isEmpty()}" xmlns:th="http://www.thymeleaf.org">
+  <div class="alert" role="alert" th:each="message : ${messages}"
+       th:classappend="${message.alertClass}" th:text="${message.text}">Saved.</div>
+</div>

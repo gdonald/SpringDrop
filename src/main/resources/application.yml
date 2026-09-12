@@ -10,6 +10,9 @@ spring:
       ddl-auto: none
   flyway:
     locations: classpath:db/migration/core
+springdrop:
+  theme:
+    default: front-end
 management:
   endpoints:
     web:

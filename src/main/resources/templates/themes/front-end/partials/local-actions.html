@@ -1,0 +1,5 @@
+<div class="d-flex flex-wrap gap-2 mb-3" th:if="${!localActions.isEmpty()}"
+     xmlns:th="http://www.thymeleaf.org">
+  <a class="btn btn-primary btn-sm" th:each="action : ${localActions}"
+     th:href="${action.url}" th:text="${action.label}">Add content</a>
+</div>

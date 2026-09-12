@@ -1,0 +1,10 @@
+<nav aria-label="breadcrumb" th:if="${!breadcrumbs.isEmpty()}" xmlns:th="http://www.thymeleaf.org">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item" th:each="crumb, position : ${breadcrumbs}"
+        th:classappend="${position.last} ? 'active' : ''"
+        th:attr="aria-current=${position.last} ? 'page' : null">
+      <a th:if="${!position.last}" th:href="${crumb.url}" th:text="${crumb.label}">Home</a>
+      <span th:if="${position.last}" th:text="${crumb.label}">Current</span>
+    </li>
+  </ol>
+</nav>

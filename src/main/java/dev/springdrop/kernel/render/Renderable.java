@@ -28,6 +28,9 @@ public record Renderable(
 
     public static final String CORE_TEMPLATE = "render/elements";
 
+    /** The type of a node drawn by its whole template rather than one fragment of it. */
+    public static final String WHOLE_TEMPLATE = "";
+
     public Renderable {
         data = Map.copyOf(data);
         attributes = Map.copyOf(attributes);

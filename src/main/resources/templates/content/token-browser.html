@@ -1,0 +1,27 @@
+<div xmlns:th="http://www.thymeleaf.org">
+  <p class="text-body-secondary" th:text="${description}">
+    Tokens are placeholders replaced with a value when text is rendered.
+  </p>
+
+  <div class="card mb-3" th:each="group : ${tokenGroups}">
+    <div class="card-header" th:text="${group.type}">type</div>
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead>
+        <tr>
+          <th scope="col">Token</th>
+          <th scope="col">Replacement</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="token : ${group.tokens}">
+          <td>
+            <code th:text="'[' + ${group.type} + ':' + ${token.name} + ']'">[site:name]</code>
+          </td>
+          <td th:text="${token.description}">The name of the site</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

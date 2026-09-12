@@ -13,6 +13,9 @@ import org.thymeleaf.context.Context;
  * Thymeleaf fragment, which reads the node's data, its attributes, and the
  * already-rendered markup of its children as {@code children}.
  *
+ * <p>A node naming no fragment is drawn by its whole template, which is how a
+ * theme's templates are written: one file, one piece of output.
+ *
  * <p>Cacheability and attachments bubble: a node's own metadata is merged with
  * everything below it, so the page ends up carrying every tag any part of it
  * depends on. A lazy node renders as a placeholder and is built afterwards, and
@@ -51,7 +54,9 @@ public class RenderService {
         context.setVariables(node.data());
         context.setVariable("attributes", node.attributes());
         context.setVariable("children", children.toString());
-        return templateEngine.process(node.template(), Set.of(node.type()), context);
+        return node.type().isEmpty()
+                ? templateEngine.process(node.template(), context)
+                : templateEngine.process(node.template(), Set.of(node.type()), context);
     }
 
     /**
