@@ -4,10 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import dev.springdrop.kernel.menu.MenuLinkContentService;
+import dev.springdrop.kernel.menu.MenuManager;
 import dev.springdrop.support.AbstractIntegrationTest;
 import dev.springdrop.support.BootstrapAssertions;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,6 +23,18 @@ class HomeControllerTest extends AbstractIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private MenuManager menus;
+
+    @Autowired
+    private MenuLinkContentService storedLinks;
+
+    @BeforeEach
+    void theMenusThePageNavigatesBy() {
+        storedLinks.install();
+        menus.install();
+    }
 
     @Test
     void rendersHomePageWithBootstrapAndEditButton() throws Exception {
@@ -36,5 +51,15 @@ class HomeControllerTest extends AbstractIntegrationTest {
                 .isNotNull();
         BootstrapAssertions.assertNoOutlineButtons(document);
         BootstrapAssertions.assertEditControlsAreButtons(document);
+    }
+
+    @Test
+    void theNavbarDrawsTheMainMenu() throws Exception {
+        Document document = Jsoup.parse(mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(document.select("nav.navbar .nav-link")).extracting(link -> link.text())
+                .containsExactly("Home");
     }
 }

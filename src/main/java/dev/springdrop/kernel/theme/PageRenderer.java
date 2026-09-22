@@ -28,7 +28,7 @@ public class PageRenderer {
 
     /** The partials every layout draws, each overridable on its own. */
     public static final List<String> PARTIALS =
-            List.of("messages", "breadcrumb", "tabs", "local-actions", "pager");
+            List.of("menu", "messages", "breadcrumb", "tabs", "local-actions", "pager");
 
     private final ThemeService themes;
     private final ThemeRegistry registry;

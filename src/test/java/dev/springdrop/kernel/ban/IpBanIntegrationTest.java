@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import dev.springdrop.kernel.menu.MenuLinkContentService;
+import dev.springdrop.kernel.menu.MenuManager;
 import dev.springdrop.kernel.security.Permissions;
 import dev.springdrop.support.AbstractIntegrationTest;
 import dev.springdrop.web.IpBanController;
@@ -36,8 +38,16 @@ class IpBanIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private MenuManager menus;
+
+    @Autowired
+    private MenuLinkContentService storedLinks;
+
     @BeforeEach
     void nobodyIsBanned() {
+        storedLinks.install();
+        menus.install();
         bans.banned().forEach(bans::unban);
     }
 

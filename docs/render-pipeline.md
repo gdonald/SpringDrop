@@ -149,7 +149,9 @@ the layout to the page.
 `layout/page` is the document: a Bootstrap navbar that collapses behind a toggler below
 the large breakpoint, a `container` holding a `row` whose content column is
 `col-12 col-lg-8`, and a footer. Partials live in `partials/` and draw one part each:
-`breadcrumb`, `tabs`, `local-actions`, `messages`, and `pager`.
+`menu`, `breadcrumb`, `tabs`, `local-actions`, `messages`, and `pager`. The `menu`
+partial draws `primaryNavigation`, whose links carry their own children, as a navbar
+with a dropdown per branch.
 
 The layout draws each partial by resolved path rather than by name, which
 `PageRenderer` passes in as `partials`:

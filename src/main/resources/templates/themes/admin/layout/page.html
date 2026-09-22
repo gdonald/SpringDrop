@@ -25,11 +25,7 @@
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="admin-toolbar-menu">
-      <ul class="navbar-nav me-auto">
-        <li class="nav-item" th:each="link : ${primaryNavigation}">
-          <a class="nav-link" th:href="${link.url}" th:text="${link.label}">Content</a>
-        </li>
-      </ul>
+      <div th:replace="${partials['menu']}"></div>
     </div>
   </div>
 </nav>

@@ -9,6 +9,10 @@ import org.springframework.util.AntPathMatcher;
  * Holds the route metadata contributed by every {@link RouteRegistrar} and
  * matches a request path to its definition. Patterns use Ant-style matching so a
  * module can register a prefix like {@code /admin/content/**}.
+ *
+ * <p>Where several patterns match a path, the most specific one wins rather than
+ * whichever module happened to register first, so a module's own page is not
+ * swallowed by another module's prefix.
  */
 @Component
 public class RouteRegistry {
@@ -25,7 +29,8 @@ public class RouteRegistry {
     public Optional<RouteDefinition> match(String path) {
         return routes.stream()
                 .filter(route -> matcher.match(route.pathPattern(), path))
-                .findFirst();
+                .min((first, second) -> matcher.getPatternComparator(path)
+                        .compare(first.pathPattern(), second.pathPattern()));
     }
 
     public List<RouteDefinition> all() {

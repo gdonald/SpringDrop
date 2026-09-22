@@ -51,6 +51,16 @@ public class CoreRoutes implements RouteRegistrar {
                         PeopleController.PATH,
                         "people",
                         "People",
-                        Permissions.ADMINISTER_USERS));
+                        Permissions.ADMINISTER_USERS),
+                RouteDefinition.admin(
+                        MenuController.PATH + "/**",
+                        "menu_actions",
+                        "Menus",
+                        Permissions.ADMINISTER_MENU),
+                RouteDefinition.admin(
+                        MenuController.PATH,
+                        "menu",
+                        "Menus",
+                        Permissions.ADMINISTER_MENU));
     }
 }

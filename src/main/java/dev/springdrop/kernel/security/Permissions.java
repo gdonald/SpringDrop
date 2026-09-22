@@ -19,4 +19,7 @@ public interface Permissions {
 
     /** Refusing requests from an address before the site answers them. */
     String BAN_IP_ADDRESSES = "ban ip addresses";
+
+    /** Adding menus and deciding what hangs in them. */
+    String ADMINISTER_MENU = "administer menu";
 }

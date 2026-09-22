@@ -1,6 +1,8 @@
 package dev.springdrop.web;
 
 import dev.springdrop.kernel.config.ConfigStore;
+import dev.springdrop.kernel.menu.BreadcrumbBuilder;
+import dev.springdrop.kernel.menu.MenuNavigation;
 import dev.springdrop.kernel.render.Renderable;
 import dev.springdrop.kernel.site.SiteInformation;
 import dev.springdrop.kernel.theme.Link;
@@ -21,17 +23,28 @@ public class HomeController {
 
     private static final String WELCOME = "A Drupal-style content platform on Spring.";
 
+    public static final String PATH = "/";
+
     private final ConfigStore configStore;
     private final ThemeService themes;
     private final PageRenderer pages;
+    private final MenuNavigation navigation;
+    private final BreadcrumbBuilder breadcrumbs;
 
-    public HomeController(ConfigStore configStore, ThemeService themes, PageRenderer pages) {
+    public HomeController(
+            ConfigStore configStore,
+            ThemeService themes,
+            PageRenderer pages,
+            MenuNavigation navigation,
+            BreadcrumbBuilder breadcrumbs) {
         this.configStore = configStore;
         this.themes = themes;
         this.pages = pages;
+        this.navigation = navigation;
+        this.breadcrumbs = breadcrumbs;
     }
 
-    @GetMapping(value = "/", produces = MediaType.TEXT_HTML_VALUE)
+    @GetMapping(value = PATH, produces = MediaType.TEXT_HTML_VALUE)
     @ResponseBody
     public String home() {
         SiteInformation site = configStore.read(
@@ -42,7 +55,8 @@ public class HomeController {
 
         PageChrome chrome = PageChrome.of(site.name(), site.name())
                 .withSlogan(site.slogan())
-                .withPrimaryNavigation(List.of(new Link("Home", "/")))
+                .withPrimaryNavigation(navigation.primary(PATH))
+                .withBreadcrumbs(breadcrumbs.build(PATH))
                 .withLocalActions(List.of(new Link("Edit", "/admin")));
 
         return pages.render(chrome, content).html();

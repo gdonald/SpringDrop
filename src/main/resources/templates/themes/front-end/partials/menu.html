@@ -1,0 +1,20 @@
+<ul class="navbar-nav me-auto" xmlns:th="http://www.thymeleaf.org">
+  <li th:each="link : ${primaryNavigation}"
+      th:class="${link.children.isEmpty()} ? 'nav-item' : 'nav-item dropdown'">
+    <a th:if="${link.children.isEmpty()}" class="nav-link"
+       th:classappend="${link.active} ? 'active' : ''"
+       th:attr="aria-current=${link.active} ? 'page' : null"
+       th:href="${link.url}" th:text="${link.label}">Home</a>
+
+    <a th:if="${!link.children.isEmpty()}" class="nav-link dropdown-toggle"
+       th:classappend="${link.active} ? 'active' : ''"
+       href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+       th:text="${link.label}">Section</a>
+    <ul class="dropdown-menu" th:if="${!link.children.isEmpty()}">
+      <li th:each="child : ${link.children}">
+        <a class="dropdown-item" th:classappend="${child.active} ? 'active' : ''"
+           th:href="${child.url}" th:text="${child.label}">Page</a>
+      </li>
+    </ul>
+  </li>
+</ul>

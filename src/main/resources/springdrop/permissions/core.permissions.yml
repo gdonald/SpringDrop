@@ -18,3 +18,7 @@ ban ip addresses:
   title: Ban IP addresses
   description: Refuse requests from an address before the site answers them.
   restricted: true
+administer menu:
+  title: Administer menus and menu links
+  description: Add menus, and decide which links hang in them and in what order.
+  restricted: true
