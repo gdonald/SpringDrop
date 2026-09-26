@@ -11,7 +11,9 @@ import org.thymeleaf.context.Context;
 /**
  * Turns a {@link Renderable} tree into markup. Each node is drawn by its
  * Thymeleaf fragment, which reads the node's data, its attributes, and the
- * already-rendered markup of its children as {@code children}.
+ * already-rendered markup of its children as {@code children}. A child put in a
+ * named slot is drawn into {@code slots} under that name instead, so a layout
+ * places each region where it belongs.
  *
  * <p>A node naming no fragment is drawn by its whole template, which is how a
  * theme's templates are written: one file, one piece of output.
@@ -46,14 +48,21 @@ public class RenderService {
         bubble.absorb(node);
 
         StringBuilder children = new StringBuilder();
+        Map<String, String> slots = new LinkedHashMap<>();
         for (Renderable child : node.children()) {
-            children.append(draw(child, bubble));
+            String markup = draw(child, bubble);
+            if (child.slot().equals(Renderable.NO_SLOT)) {
+                children.append(markup);
+            } else {
+                slots.merge(child.slot(), markup, String::concat);
+            }
         }
 
         Context context = new Context(LocaleContextHolder.getLocale());
         context.setVariables(node.data());
         context.setVariable("attributes", node.attributes());
         context.setVariable("children", children.toString());
+        context.setVariable("slots", slots);
         return node.type().isEmpty()
                 ? templateEngine.process(node.template(), context)
                 : templateEngine.process(node.template(), Set.of(node.type()), context);

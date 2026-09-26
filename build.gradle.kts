@@ -32,6 +32,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-database-postgresql")
+    implementation(libs.jsoup)
     runtimeOnly("org.postgresql:postgresql")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
@@ -41,7 +42,6 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-postgresql")
-    testImplementation(libs.jsoup)
     testImplementation(libs.archunit.junit5)
 }
 
@@ -60,6 +60,9 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    // Spring keeps up to 32 test contexts cached for the whole run, each with its own
+    // connection pool and template cache, which outgrows Gradle's 512m default.
+    maxHeapSize = "1g"
 }
 
 tasks.jacocoTestReport {

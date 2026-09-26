@@ -18,6 +18,10 @@ import org.springframework.stereotype.Service;
  * <p>The layout draws the shared partials by path rather than by name, so a theme
  * overrides the pager or the messages without copying the layout that includes
  * them.
+ *
+ * <p>Each region the chrome carries is a child of the layout in a slot named after
+ * the region, so the layout draws {@code slots['sidebar']} where the sidebar goes
+ * and the blocks in it bubble their metadata like the content does.
  */
 @Service
 public class PageRenderer {
@@ -54,6 +58,9 @@ public class PageRenderer {
         variables.put("partials", partialTemplates());
 
         Renderable layout = themes.build(LAYOUT_DIRECTORY, TemplateSuggestions.of(LAYOUT), variables);
+        for (Map.Entry<String, Renderable> region : chrome.regions().entrySet()) {
+            layout = layout.child(region.getValue().inSlot(region.getKey()));
+        }
         return renderer.render(layout.child(content));
     }
 

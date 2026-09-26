@@ -123,4 +123,36 @@ class RenderPipelineIntegrationTest extends AbstractIntegrationTest {
         assertThat(Jsoup.parseBodyFragment(page.html()).selectFirst("span").text())
                 .isEqualTo("Draft");
     }
+
+    @Test
+    void aChildInASlotIsDrawnWhereTheTemplatePlacesThatSlot() {
+        RenderedPage page = renderer.render(Renderable.of("render/test-elements", "columns")
+                .child(Renderable.of("text").with("value", "Agenda").inSlot("side"))
+                .child(Renderable.of("text").with("value", "Minutes"))
+                .child(Renderable.of("text").with("value", "Attendance").inSlot("side")));
+
+        Document document = Jsoup.parseBodyFragment(page.html());
+        assertThat(document.select("aside div")).extracting(element -> element.text())
+                .containsExactly("Agenda", "Attendance");
+        assertThat(document.select("section div")).extracting(element -> element.text())
+                .containsExactly("Minutes");
+    }
+
+    @Test
+    void aSlottedChildsCacheTagsBubbleLikeAnyOtherChilds() {
+        RenderedPage page = renderer.render(Renderable.of("render/test-elements", "columns")
+                .child(Renderable.of("text").with("value", "Agenda").cacheTag("node:9").inSlot("side")));
+
+        assertThat(page.cache().tags()).containsExactly("node:9");
+    }
+
+    @Test
+    void cacheabilityAddedToANodeJoinsWhatItAlreadyCarried() {
+        Renderable node = Renderable.of("text")
+                .cacheTag("node:7")
+                .cacheability(CacheMetadata.EMPTY.withTag("menu:main").withContext("url.path"));
+
+        assertThat(node.cache().tags()).containsExactly("node:7", "menu:main");
+        assertThat(node.cache().contexts()).containsExactly("url.path");
+    }
 }

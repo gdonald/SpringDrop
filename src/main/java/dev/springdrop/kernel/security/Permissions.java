@@ -22,4 +22,7 @@ public interface Permissions {
 
     /** Adding menus and deciding what hangs in them. */
     String ADMINISTER_MENU = "administer menu";
+
+    /** Placing blocks in regions, and writing the custom blocks in the library. */
+    String ADMINISTER_BLOCKS = "administer blocks";
 }

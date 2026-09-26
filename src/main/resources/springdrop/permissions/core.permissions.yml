@@ -22,3 +22,7 @@ administer menu:
   title: Administer menus and menu links
   description: Add menus, and decide which links hang in them and in what order.
   restricted: true
+administer blocks:
+  title: Administer blocks
+  description: Place blocks in the regions of each theme, and write the custom blocks in the library.
+  restricted: true

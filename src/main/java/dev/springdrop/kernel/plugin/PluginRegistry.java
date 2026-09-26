@@ -10,7 +10,9 @@ import org.springframework.stereotype.Component;
 /**
  * Builds a {@link PluginManager} for a plugin contract by discovering every
  * {@link SpringDropPlugin}-annotated bean of that type, expanding any
- * {@link DerivablePlugin} into its derivatives. Managers are cached per type.
+ * {@link DerivablePlugin} into its derivatives. Managers are cached per type,
+ * and a type whose derivatives follow what a site stores is invalidated when
+ * that changes, so its next lookup derives them again.
  */
 @Component
 public class PluginRegistry {
@@ -30,6 +32,11 @@ public class PluginRegistry {
         PluginManager<?> manager = build(pluginType);
         cache.put(pluginType, manager);
         return manager.as(pluginType);
+    }
+
+    /** Drops the cached manager for a type, so derivatives are worked out afresh. */
+    public void invalidate(Class<?> pluginType) {
+        cache.remove(pluginType);
     }
 
     private PluginManager<?> build(Class<?> pluginType) {

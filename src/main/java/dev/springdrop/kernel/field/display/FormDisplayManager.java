@@ -69,6 +69,26 @@ public class FormDisplayManager {
         return container;
     }
 
+    /**
+     * The values a submitted edit form holds, each field read back by the widget
+     * that drew it. A field left empty is left out, and a field holding one value
+     * carries it bare rather than in a list.
+     */
+    public Map<String, Object> extract(
+            String entityTypeId, String bundle, String mode, Map<String, Object> submitted) {
+
+        Optional<FormDisplayConfig> display = find(entityTypeId, bundle, mode);
+        Map<String, Object> extracted = new java.util.LinkedHashMap<>();
+        for (String fieldName : shownFields(entityTypeId, bundle, display)) {
+            WidgetContext context = withWidget(widgets.context(entityTypeId, bundle, fieldName), display);
+            List<Object> values = widgets.extract(context, submitted);
+            if (!values.isEmpty()) {
+                extracted.put(fieldName, (values.size() == 1) ? values.getFirst() : values);
+            }
+        }
+        return extracted;
+    }
+
     private List<String> shownFields(
             String entityTypeId, String bundle, Optional<FormDisplayConfig> display) {
 

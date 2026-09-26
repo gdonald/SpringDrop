@@ -1,5 +1,7 @@
 package dev.springdrop.web;
 
+import dev.springdrop.kernel.block.BlockContext;
+import dev.springdrop.kernel.block.BlockPageRenderer;
 import dev.springdrop.kernel.config.ConfigStore;
 import dev.springdrop.kernel.menu.BreadcrumbBuilder;
 import dev.springdrop.kernel.menu.MenuNavigation;
@@ -7,7 +9,6 @@ import dev.springdrop.kernel.render.Renderable;
 import dev.springdrop.kernel.site.SiteInformation;
 import dev.springdrop.kernel.theme.Link;
 import dev.springdrop.kernel.theme.PageChrome;
-import dev.springdrop.kernel.theme.PageRenderer;
 import dev.springdrop.kernel.theme.TemplateSuggestions;
 import dev.springdrop.kernel.theme.ThemeService;
 import java.util.List;
@@ -17,7 +18,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-/** The front page, drawn by the active theme around its own content template. */
+/**
+ * The front page, drawn by the active theme around its own content template,
+ * with the blocks placed in the theme's regions.
+ */
 @Controller
 public class HomeController {
 
@@ -27,14 +31,14 @@ public class HomeController {
 
     private final ConfigStore configStore;
     private final ThemeService themes;
-    private final PageRenderer pages;
+    private final BlockPageRenderer pages;
     private final MenuNavigation navigation;
     private final BreadcrumbBuilder breadcrumbs;
 
     public HomeController(
             ConfigStore configStore,
             ThemeService themes,
-            PageRenderer pages,
+            BlockPageRenderer pages,
             MenuNavigation navigation,
             BreadcrumbBuilder breadcrumbs) {
         this.configStore = configStore;
@@ -59,6 +63,6 @@ public class HomeController {
                 .withBreadcrumbs(breadcrumbs.build(PATH))
                 .withLocalActions(List.of(new Link("Edit", "/admin")));
 
-        return pages.render(chrome, content).html();
+        return pages.render(chrome, content, BlockContext.of(PATH, site.name())).html();
     }
 }

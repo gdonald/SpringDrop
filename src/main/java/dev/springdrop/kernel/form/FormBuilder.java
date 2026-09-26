@@ -72,6 +72,17 @@ public class FormBuilder {
         return new FormOutcome(true, "", state);
     }
 
+    /**
+     * Checks what was posted against a tree a controller built itself rather
+     * than through a registered form: the required elements the person could
+     * see, then each element's rules, the same checks a registered form gets.
+     */
+    public FormState validate(FormElement tree, Map<String, Object> submitted) {
+        FormState state = FormState.of(submitted);
+        validateRequired(tree, state);
+        return state;
+    }
+
     private FormElement buildTree(String formId, FormState state) {
         FormElement tree = form(formId).build(state);
         events.publishEvent(new FormAlterEvent(formId, tree, state));

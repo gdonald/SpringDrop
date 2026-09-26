@@ -3,6 +3,7 @@ package dev.springdrop.kernel.theme;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.springdrop.kernel.render.Renderable;
+import dev.springdrop.kernel.render.RenderedPage;
 import dev.springdrop.support.AbstractIntegrationTest;
 import dev.springdrop.support.BootstrapAssertions;
 import java.util.List;
@@ -135,6 +136,53 @@ class BaseThemeTest extends AbstractIntegrationTest {
         assertThat(page.select(".alert")).isEmpty();
         assertThat(page.select(".pagination")).isEmpty();
         assertThat(page.select("main .btn")).isEmpty();
+    }
+
+    @Test
+    void eachRegionTheChromeCarriesIsDrawnWhereTheLayoutPlacesIt() {
+        Document page = render(PageChrome.of("SpringDrop", "Board minutes")
+                .withRegion("header", region("header", "Notice"))
+                .withRegion("sidebar", region("sidebar", "Upcoming meetings"))
+                .withRegion("footer", region("footer", "Contact the clerk")));
+
+        assertThat(page.selectFirst("body > .region-header").text()).isEqualTo("Notice");
+        assertThat(page.selectFirst("main .row > aside.col-12.col-lg-4 .region-sidebar").text())
+                .isEqualTo("Upcoming meetings");
+        assertThat(page.selectFirst("footer .region-footer").text()).isEqualTo("Contact the clerk");
+    }
+
+    @Test
+    void aPageWithNothingInTheSidebarDrawsNoSidebarColumn() {
+        Document page = render(PageChrome.of("SpringDrop", "Board minutes"));
+
+        assertThat(page.select("main aside")).isEmpty();
+    }
+
+    @Test
+    void aRegionPlacedTwiceKeepsWhatWasPlacedLast() {
+        Document page = render(PageChrome.of("SpringDrop", "Board minutes")
+                .withRegion("highlighted", region("highlighted", "Draft"))
+                .withRegion("highlighted", region("highlighted", "Approved")));
+
+        assertThat(page.select(".region-highlighted")).extracting(element -> element.text())
+                .containsExactly("Approved");
+    }
+
+    @Test
+    void whatARegionDependsOnBubblesToThePage() {
+        Renderable content = themes.build(
+                "content", TemplateSuggestions.of("front-page"), Map.of("welcome", "Approved"));
+
+        RenderedPage page = pages.render(PageChrome.of("SpringDrop", "Board minutes")
+                .withRegion("sidebar", region("sidebar", "Upcoming meetings").cacheTag("config:block_list")), content);
+
+        assertThat(page.cache().tags()).contains("config:block_list");
+    }
+
+    private static Renderable region(String name, String text) {
+        return Renderable.of("container")
+                .attribute("class", "region region-" + name)
+                .child(Renderable.of("text").with("value", text));
     }
 
     private Document render(PageChrome chrome) {

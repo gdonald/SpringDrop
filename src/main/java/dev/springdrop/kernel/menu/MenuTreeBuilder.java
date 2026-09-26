@@ -76,7 +76,8 @@ public class MenuTreeBuilder {
         return trailTo(reachable(gather(menuId)), activePath);
     }
 
-    private static CacheMetadata cacheability(String menuId) {
+    /** What any built tree of a menu depends on. */
+    public static CacheMetadata cacheability(String menuId) {
         return CacheMetadata.EMPTY
                 .withTag(MenuConfig.cacheTag(menuId))
                 .withContext(RouteAccessChecker.USER_PERMISSIONS_CONTEXT);

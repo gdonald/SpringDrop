@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class FieldConstraintProvider implements EntityConstraintProvider {
 
-    private static final String FIELD_PATH_PREFIX = "fields.";
+    public static final String FIELD_PATH_PREFIX = "fields.";
 
     private final FieldConfigManager fieldConfigManager;
 

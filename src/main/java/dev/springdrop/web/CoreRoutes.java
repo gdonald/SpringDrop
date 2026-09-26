@@ -61,6 +61,36 @@ public class CoreRoutes implements RouteRegistrar {
                         MenuController.PATH,
                         "menu",
                         "Menus",
-                        Permissions.ADMINISTER_MENU));
+                        Permissions.ADMINISTER_MENU),
+                RouteDefinition.admin(
+                        BlockLayoutController.PATH + "/**",
+                        "block_actions",
+                        "Block layout",
+                        Permissions.ADMINISTER_BLOCKS),
+                RouteDefinition.admin(
+                        BlockLayoutController.PATH,
+                        "block_layout",
+                        "Block layout",
+                        Permissions.ADMINISTER_BLOCKS),
+                RouteDefinition.admin(
+                        BlockContentTypeController.PATH + "/**",
+                        "block_content_type_actions",
+                        "Block types",
+                        Permissions.ADMINISTER_BLOCKS),
+                RouteDefinition.admin(
+                        BlockContentTypeController.PATH,
+                        "block_content_types",
+                        "Block types",
+                        Permissions.ADMINISTER_BLOCKS),
+                RouteDefinition.admin(
+                        CustomBlockController.PATH + "/**",
+                        "custom_block_actions",
+                        "Custom block library",
+                        Permissions.ADMINISTER_BLOCKS),
+                RouteDefinition.admin(
+                        CustomBlockController.PATH,
+                        "custom_blocks",
+                        "Custom block library",
+                        Permissions.ADMINISTER_BLOCKS));
     }
 }

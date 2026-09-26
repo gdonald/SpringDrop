@@ -169,13 +169,13 @@ class RoleIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void signingInCarriesThePermissionsOfTheRolesTheAccountHolds() {
+    void signingInCarriesThePermissionsOfTheRolesTheAccountHoldsAndTheRolesThemselves() {
         roles.save(RoleConfig.of(EDITOR, "Editor", 5).granting(CATALOGUE));
         accountHolding(EDITOR);
 
         assertThat(accountDetails.loadUserByUsername("edith").getAuthorities())
                 .extracting(value -> value.toString())
-                .containsExactly(CATALOGUE);
+                .containsExactly(CATALOGUE, "ROLE_" + RoleConfig.AUTHENTICATED, "ROLE_" + EDITOR);
     }
 
     @Test
@@ -185,7 +185,7 @@ class RoleIntegrationTest extends AbstractIntegrationTest {
 
         assertThat(accountDetails.loadUserByUsername("edith").getAuthorities())
                 .extracting(value -> value.toString())
-                .containsExactly(CATALOGUE);
+                .containsExactly(CATALOGUE, "ROLE_" + RoleConfig.AUTHENTICATED);
     }
 
     @Test

@@ -24,12 +24,16 @@ public record Renderable(
         List<Renderable> children,
         CacheMetadata cache,
         Attachments attachments,
-        Optional<LazyBuilder> lazyBuilder) {
+        Optional<LazyBuilder> lazyBuilder,
+        String slot) {
 
     public static final String CORE_TEMPLATE = "render/elements";
 
     /** The type of a node drawn by its whole template rather than one fragment of it. */
     public static final String WHOLE_TEMPLATE = "";
+
+    /** The slot of a child drawn into its parent's {@code children}. */
+    public static final String NO_SLOT = "";
 
     public Renderable {
         data = Map.copyOf(data);
@@ -44,34 +48,48 @@ public record Renderable(
 
     public static Renderable of(String template, String type) {
         return new Renderable(template, type, Map.of(), Map.of(), List.of(),
-                CacheMetadata.EMPTY, Attachments.NONE, Optional.empty());
+                CacheMetadata.EMPTY, Attachments.NONE, Optional.empty(), NO_SLOT);
     }
 
     /** A placeholder filled in after the shell around it has rendered. */
     public static Renderable lazy(LazyBuilder builder) {
         return new Renderable("", "", Map.of(), Map.of(), List.of(),
-                CacheMetadata.EMPTY, Attachments.NONE, Optional.of(builder));
+                CacheMetadata.EMPTY, Attachments.NONE, Optional.of(builder), NO_SLOT);
     }
 
     public Renderable with(String key, Object value) {
         Map<String, Object> combined = new LinkedHashMap<>(data);
         combined.put(key, value);
         return new Renderable(template, type, combined, attributes, children,
-                cache, attachments, lazyBuilder);
+                cache, attachments, lazyBuilder, slot);
     }
 
     public Renderable attribute(String name, String value) {
         Map<String, String> combined = new LinkedHashMap<>(attributes);
         combined.put(name, value);
         return new Renderable(template, type, data, combined, children,
-                cache, attachments, lazyBuilder);
+                cache, attachments, lazyBuilder, slot);
     }
 
     public Renderable child(Renderable nested) {
         List<Renderable> combined = new ArrayList<>(children);
         combined.add(nested);
         return new Renderable(template, type, data, attributes, combined,
-                cache, attachments, lazyBuilder);
+                cache, attachments, lazyBuilder, slot);
+    }
+
+    /**
+     * Draws this node into its parent's {@code slots} under the given name
+     * rather than into {@code children}, so a template places it on its own.
+     */
+    public Renderable inSlot(String name) {
+        return new Renderable(template, type, data, attributes, children,
+                cache, attachments, lazyBuilder, name);
+    }
+
+    /** Adds everything the given metadata carries to this node's own. */
+    public Renderable cacheability(CacheMetadata added) {
+        return withCache(cache.merge(added));
     }
 
     public Renderable cacheTag(String tag) {
@@ -100,11 +118,11 @@ public record Renderable(
 
     private Renderable withCache(CacheMetadata updated) {
         return new Renderable(template, type, data, attributes, children,
-                updated, attachments, lazyBuilder);
+                updated, attachments, lazyBuilder, slot);
     }
 
     private Renderable withAttachments(Attachments updated) {
         return new Renderable(template, type, data, attributes, children,
-                cache, updated, lazyBuilder);
+                cache, updated, lazyBuilder, slot);
     }
 }

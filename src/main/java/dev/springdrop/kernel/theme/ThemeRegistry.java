@@ -112,6 +112,22 @@ public class ThemeRegistry {
     }
 
     /**
+     * The regions blocks are placed in under a theme: its own, or the nearest
+     * ancestor's when it declares none. An unknown theme has none.
+     */
+    public List<Region> regions(String themeName) {
+        Set<String> seen = new LinkedHashSet<>();
+        Optional<Theme> theme = find(themeName);
+        while (theme.isPresent() && seen.add(theme.get().name())) {
+            if (!theme.get().regions().isEmpty()) {
+                return theme.get().regions();
+            }
+            theme = theme.get().parent().flatMap(this::find);
+        }
+        return List.of();
+    }
+
+    /**
      * The first template that exists for any suggestion, searched most specific
      * suggestion first and, within a suggestion, active theme first.
      */

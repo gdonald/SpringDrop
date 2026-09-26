@@ -50,6 +50,19 @@ class FormLifecycleIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void aTreeBuiltOutsideARegisteredFormIsCheckedForRequiredValuesAndRules() {
+        FormElement tree = FormElement.of(ElementType.CONTAINER, "loose")
+                .child(FormElement.of(ElementType.TEXTFIELD, "name").markRequired())
+                .child(FormElement.of(ElementType.TEXTFIELD, "code").rule(ValidationRule.maxLength(3)))
+                .child(FormElement.of(ElementType.TEXTFIELD, "note"));
+
+        FormState state = forms.validate(tree, Map.of("code", "ABCD", "note", "Kept"));
+
+        assertThat(state.errors()).containsOnlyKeys("name", "code");
+        assertThat(state.values()).containsEntry("note", "Kept");
+    }
+
+    @Test
     void aFormRendersItsElementsBeforeAnythingIsSubmitted() {
         Document document = parse(forms.render(SUBSCRIBE_FORM));
 

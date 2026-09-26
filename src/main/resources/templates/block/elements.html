@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div th:fragment="branding" class="site-branding">
+  <a class="fs-4 text-decoration-none" href="/" rel="home" th:text="${siteName}">SpringDrop</a>
+  <p class="text-body-secondary mb-0" th:if="${!slogan.isEmpty()}" th:text="${slogan}">Slogan</p>
+</div>
+
+<h1 th:fragment="title" class="h3" th:text="${title}">Title</h1>
+
+<nav th:fragment="menu" th:attr="aria-label=${menuLabel}">
+  <ul th:replace="~{block/elements :: menuLevel(${links})}"></ul>
+</nav>
+
+<ul th:fragment="menuLevel(items)" class="nav flex-column">
+  <li class="nav-item" th:each="link : ${items}">
+    <a class="nav-link" th:classappend="${link.active} ? 'active' : ''"
+       th:attr="aria-current=${link.active} ? 'page' : null"
+       th:href="${link.url}" th:text="${link.label}">Home</a>
+    <th:block th:if="${!link.children.isEmpty()}">
+      <ul th:replace="~{block/elements :: menuLevel(${link.children})}"></ul>
+    </th:block>
+  </li>
+</ul>
+
+<nav th:fragment="breadcrumb" aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item" th:each="crumb, position : ${crumbs}"
+        th:classappend="${position.last} ? 'active' : ''"
+        th:attr="aria-current=${position.last} ? 'page' : null">
+      <a th:if="${!position.last}" th:href="${crumb.url}" th:text="${crumb.label}">Home</a>
+      <span th:if="${position.last}" th:text="${crumb.label}">Current</span>
+    </li>
+  </ol>
+</nav>
+
+<div th:fragment="help" class="alert alert-info" role="note" th:text="${text}">Help</div>
+
+<p th:fragment="poweredBy" class="text-body-secondary mb-0">Powered by SpringDrop</p>
+
+</body>
+</html>

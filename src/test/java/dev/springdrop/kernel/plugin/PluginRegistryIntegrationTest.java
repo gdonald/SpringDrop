@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.springdrop.support.AbstractIntegrationTest;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -55,6 +56,17 @@ class PluginRegistryIntegrationTest extends AbstractIntegrationTest {
         // view, which is what lets the registry hold one index per contract.
         assertThat(pluginRegistry.managerFor(Greeter.class).ids())
                 .isSameAs(pluginRegistry.managerFor(Greeter.class).ids());
+    }
+
+    @Test
+    void invalidatingAContractScansForItsPluginsAgainOnTheNextLookup() {
+        Set<String> scanned = pluginRegistry.managerFor(Greeter.class).ids();
+
+        pluginRegistry.invalidate(Greeter.class);
+
+        assertThat(pluginRegistry.managerFor(Greeter.class).ids())
+                .isNotSameAs(scanned)
+                .isEqualTo(scanned);
     }
 
     @Test

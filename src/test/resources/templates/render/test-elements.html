@@ -2,5 +2,9 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <span th:fragment="badge" class="badge" th:text="${label}">badge</span>
+<div th:fragment="columns">
+  <aside th:utext="${slots['side']}">side</aside>
+  <section th:utext="${children}">main</section>
+</div>
 </body>
 </html>

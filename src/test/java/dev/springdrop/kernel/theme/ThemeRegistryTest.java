@@ -181,4 +181,39 @@ class ThemeRegistryTest {
     void aThemeWithANullNameIsRejected() {
         assertThatThrownBy(() -> Theme.named(null)).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void aThemeDeclaringRegionsPlacesBlocksInItsOwn() {
+        registry.register(Theme.named("regional").withRegions(List.of(new Region("sidebar", "Sidebar"))));
+
+        assertThat(registry.regions("regional")).containsExactly(new Region("sidebar", "Sidebar"));
+    }
+
+    @Test
+    void aThemeDeclaringNoRegionsUsesItsParents() {
+        registry.register(Theme.named("regional").withRegions(List.of(new Region("footer", "Footer"))));
+        registry.register(Theme.extending("regional-child", "regional"));
+
+        assertThat(registry.regions("regional-child")).containsExactly(new Region("footer", "Footer"));
+    }
+
+    @Test
+    void anUnregisteredThemeHasNoRegions() {
+        assertThat(registry.regions("absent")).isEmpty();
+    }
+
+    @Test
+    void aThemeWhoseParentIsNotRegisteredHasNoRegionsToInherit() {
+        registry.register(Theme.extending("orphan", "departed"));
+
+        assertThat(registry.regions("orphan")).isEmpty();
+    }
+
+    @Test
+    void anInheritanceCycleWithNoRegionsStopsRatherThanLooping() {
+        registry.register(new Theme("ouroboros", java.util.Optional.of("tail"), "themes/ouroboros"));
+        registry.register(new Theme("tail", java.util.Optional.of("ouroboros"), "themes/tail"));
+
+        assertThat(registry.regions("ouroboros")).isEmpty();
+    }
 }

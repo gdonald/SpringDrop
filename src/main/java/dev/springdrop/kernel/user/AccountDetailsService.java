@@ -55,11 +55,13 @@ public class AccountDetailsService implements UserDetailsService {
                 () -> new UsernameNotFoundException("No account named '" + username + "'"));
 
         Map<String, Object> fields = stored.fields();
+        List<String> held = rolesOf(fields);
         return new AccountPrincipal(
                 ((Number) stored.id()).longValue(),
                 stored.label(),
                 String.valueOf(fields.getOrDefault(UserEntityType.PASSWORD_HASH, "")),
                 Boolean.TRUE.equals(fields.get("status")),
-                roles.permissionsOf(rolesOf(fields)));
+                roles.permissionsOf(held),
+                held);
     }
 }

@@ -221,4 +221,34 @@ class FormDisplayIntegrationTest extends AbstractIntegrationTest {
             return () -> List.of(DISH, DISH_TYPE);
         }
     }
+
+    @Test
+    void aSubmittedFormIsReadBackWithTheFieldsLeftEmptyLeftOut() {
+        Map<String, Object> extracted = displays.extract(
+                "dish", BUNDLE, FormDisplayConfig.DEFAULT_MODE, Map.of("summary", "Stew", "method", ""));
+
+        assertThat(extracted).containsExactly(Map.entry("summary", "Stew"));
+    }
+
+    @Test
+    void aFieldHoldingSeveralValuesIsReadBackAsAListInDeltaOrder() {
+        fields.createStorage(FieldStorageConfig.multiple(
+                "steps", "dish", StringFieldType.ID, FieldStorageConfig.UNLIMITED));
+        fields.createInstance(FieldInstanceConfig.of("steps", "dish", BUNDLE, "Steps"));
+
+        Map<String, Object> extracted = displays.extract(
+                "dish", BUNDLE, FormDisplayConfig.DEFAULT_MODE, Map.of("steps[0]", "Chop", "steps[1]", "Simmer"));
+
+        assertThat(extracted).containsEntry("steps", List.of("Chop", "Simmer"));
+    }
+
+    @Test
+    void aFieldTheDisplayLeavesOutIsNotReadBack() {
+        displays.save(FormDisplayConfig.of("dish", BUNDLE, EDIT_MODE).withoutField("method"));
+
+        Map<String, Object> extracted = displays.extract(
+                "dish", BUNDLE, EDIT_MODE, Map.of("summary", "Stew", "method", "Brown the onions."));
+
+        assertThat(extracted).containsOnlyKeys("summary");
+    }
 }

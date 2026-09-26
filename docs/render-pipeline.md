@@ -35,6 +35,27 @@ A fragment reads the node's data by name, the rendered markup of its children as
 Thymeleaf sets attributes it can name, so a fragment reads the attributes it cares
 about rather than spreading the whole map onto its element.
 
+### Slots
+
+A child put in a named slot is drawn into its parent's `slots` map under that name
+instead of into `children`, so a template places it on its own:
+
+```java
+Renderable.of(template, "columns")
+        .child(Renderable.of("text").with("value", "Agenda").inSlot("side"))
+        .child(Renderable.of("text").with("value", "Minutes"));
+```
+
+```html
+<div th:fragment="columns">
+  <aside th:utext="${slots['side']}"></aside>
+  <section th:utext="${children}"></section>
+</div>
+```
+
+Several children in one slot are drawn one after another. A slotted child bubbles its
+cacheability and attachments like any other child.
+
 ## Bubbling
 
 `RenderService.render` returns a `RenderedPage`: the markup, the cacheability merged
@@ -144,14 +165,22 @@ return pages.render(chrome, content).html();
 The content is a child of the layout, so its cache tags and attachments bubble through
 the layout to the page.
 
+`PageChrome.withRegion(region, renderable)` puts something in a region of the layout.
+Each region is a child of the layout in the slot named after it, and the layout draws
+`slots['sidebar']` where the sidebar goes. The block system fills the regions from the
+blocks placed in them, as `docs/block-system.md` describes.
+
 ### Layout and partials
 
 `layout/page` is the document: a Bootstrap navbar that collapses behind a toggler below
 the large breakpoint, a `container` holding a `row` whose content column is
-`col-12 col-lg-8`, and a footer. Partials live in `partials/` and draw one part each:
-`menu`, `breadcrumb`, `tabs`, `local-actions`, `messages`, and `pager`. The `menu`
-partial draws `primaryNavigation`, whose links carry their own children, as a navbar
-with a dropdown per branch.
+`col-12 col-lg-8`, and a footer. It draws the `header`, `primary_menu`, `breadcrumb`,
+`highlighted`, `help`, `content`, `sidebar`, and `footer` regions, and adds a
+`col-12 col-lg-4` sidebar column only when the sidebar holds something.
+
+Partials live in `partials/` and draw one part each: `menu`, `breadcrumb`, `tabs`,
+`local-actions`, `messages`, and `pager`. The `menu` partial draws `primaryNavigation`,
+whose links carry their own children, as a navbar with a dropdown per branch.
 
 The layout draws each partial by resolved path rather than by name, which
 `PageRenderer` passes in as `partials`:
