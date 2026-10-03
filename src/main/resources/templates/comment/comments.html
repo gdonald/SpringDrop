@@ -1,0 +1,5 @@
+<section class="comments mt-4" id="comments" xmlns:th="http://www.thymeleaf.org">
+  <h2 class="h5">Comments</h2>
+  <div class="comments__thread" th:utext="${children}">Comments</div>
+  <p th:if="${!addUrl.isEmpty()}"><a class="btn btn-primary" th:href="${addUrl}">Add new comment</a></p>
+</section>

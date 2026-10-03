@@ -44,6 +44,11 @@ public record BlockPlacement(
         return "config:" + configName(id);
     }
 
+    /** What this placement draws, apart from where it is placed and when it shows. */
+    public BlockInstance instance() {
+        return new BlockInstance(id, plugin, label, labelDisplay, settings);
+    }
+
     public BlockPlacement inRegion(String newRegion) {
         return new BlockPlacement(id, theme, newRegion, plugin, label, labelDisplay, weight, settings, visibility);
     }

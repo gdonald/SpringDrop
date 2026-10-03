@@ -2,7 +2,10 @@
 springBoot = "4.1.0"
 dependencyManagement = "1.1.7"
 jsoup = "1.22.2"
+owaspHtmlSanitizer = "20260924.2"
+commonmark = "0.30.0"
 archunit = "1.4.2"
+lucene = "10.5.1"
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
@@ -10,4 +13,9 @@ dependency-management = { id = "io.spring.dependency-management", version.ref = 
 
 [libraries]
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+owasp-html-sanitizer = { module = "com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer", version.ref = "owaspHtmlSanitizer" }
+commonmark = { module = "org.commonmark:commonmark", version.ref = "commonmark" }
+lucene-core = { module = "org.apache.lucene:lucene-core", version.ref = "lucene" }
+lucene-analysis-common = { module = "org.apache.lucene:lucene-analysis-common", version.ref = "lucene" }
+lucene-highlighter = { module = "org.apache.lucene:lucene-highlighter", version.ref = "lucene" }
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }

@@ -24,6 +24,9 @@ A module contributes types by registering an `EntityTypeProvider` bean.
 `EntityTypeManager` gathers them, resolves a type's handlers, and installs or removes
 its storage when the module is installed or uninstalled.
 
+`EntityType.canonicalPath(id)` is one entity's address from the type's canonical link,
+or `/` for a type without one.
+
 ## Storage handlers
 
 `ContentEntityStorage` creates the base table, and the revision table for a
@@ -58,7 +61,20 @@ listener that throws rolls the whole save back.
 
 A load reads the base row, then the field values for the requested language and
 revision, and publishes `LOAD`. Passing no revision reads the one the base row points
-at. A delete publishes `DELETE`, removes every field row, and drops the base row.
+at. Loading an earlier revision reads its title and base field values from the row that
+revision wrote, and a revision the entity never had reads as the current one.
+
+`save(entity, false)` writes over the entity's current revision instead of starting a new
+one, and an entity being created gets its first revision either way. `revisions(type, id)`
+lists every revision newest first as `EntityRevision`: its id, the label it had, and its
+base field values. `deleteRevision(type, id, revisionId)` removes one revision with the
+field values it held, and refuses the current one.
+
+`saveForwardRevision(entity)` writes a new revision of a stored entity without making it
+the one the site shows: its revision row and revision field values are written, while the
+entity's own row and current field values stay as they were. `latestRevisionId(type, id)`
+is the newest revision, which may be ahead of the current one, and loading it by id reads
+it as it was saved. The next ordinary save makes a revision current again. A delete publishes `DELETE`, removes every field row, and drops the base row.
 
 A field's current values live in `<base table>__<field>`, keyed by entity, language,
 and delta; a revisionable type keeps every revision's values in
@@ -67,7 +83,8 @@ as that value, one holding several as a list in delta order, and deltas are rein
 from zero on every save.
 
 Base fields are declared in code rather than configuration and stored as columns of
-the base and revision tables. `BaseFieldDefinition.authoredContent()` is the set
+the base and revision tables. A base field declared `withDefault(value)` is given that value when an
+entity is first stored without one. `BaseFieldDefinition.authoredContent()` is the set
 authored content carries: `status`, `created`, `changed`, and `owner`. Their values
 travel in the same `fields` map as configured fields; storage routes them by name.
 
@@ -88,7 +105,8 @@ fields.createInstance(FieldInstanceConfig.of("tags", "node", "article", "Tags").
 ```
 
 `FieldConstraintProvider` turns that configuration into constraints on save: a
-required instance must be filled in, a field may not hold more values than its
+required instance must be filled in, where a blank string or an empty list of values
+counts as empty, a field may not hold more values than its
 cardinality allows, and the field type's own constraints apply.
 
 ### Field types
@@ -96,13 +114,17 @@ cardinality allows, and the field type's own constraints apply.
 A field type is a plugin registered with `@SpringDropPlugin(type = FieldType.class)`.
 It declares the properties one value holds, the constraints every field of the type
 carries, the widget and formatter that handle it by default, and its default storage
-and instance settings. Creating a storage on a type that is not registered is
-rejected.
+and instance settings. A type can also offer the elements its instance settings are
+edited with on the Field UI, through `instanceSettingsForm` and `instanceSettingsValues`.
+Creating a storage on a type that is not registered is rejected.
 
 | Type | Stores | Bounded by |
 | --- | --- | --- |
 | `string` | single-line text | `max_length` storage setting, 255 by default |
 | `string_long` | text of any length | nothing |
+| `text` | formatted single-line text: `value` and `format` | `max_length` storage setting, 255 by default, and a format the saver may use |
+| `text_long` | formatted text of any length: `value` and `format` | a format the saver may use |
+| `text_with_summary` | `value`, `summary`, and `format` | a format the saver may use, and a summary when `required_summary` is set |
 | `integer` | whole numbers | `min` and `max` instance settings |
 | `decimal` | exact numbers | `min` and `max`, with `precision` and `scale` in storage |
 | `float` | approximate numbers | `min` and `max` instance settings |
@@ -114,7 +136,14 @@ rejected.
 | `email` | an email address | the address is well formed |
 | `telephone` | a telephone number | the characters are ones numbers are written with |
 | `link` | a uri and an optional title | the uri parses, internally or absolutely |
+| `comment` | whether the entity takes comments: 2 open, 1 closed, 0 hidden | one of the three |
 | `entity_reference` | the id of another entity | the target exists, per the storage's `target_type` |
+| `file` | a managed file's id, a description, and whether it is listed | the file's extension and size, see [Files](files.md) |
+| `image` | a managed file's id, alt text, title, width, and height | the same, plus pixel bounds and required alt text |
+
+A formatted text value names a text format the site has. Saved in a request, the person
+saving has to be allowed to use that format. A save made outside a request, such as an
+install step, is not asked who is saving.
 
 A list field's options are stored as value and label pairs, built with
 `AllowedValues.setting(...)`, so each option keeps its own type. Saving a value
@@ -122,6 +151,9 @@ outside the current set is rejected.
 
 A field type's constraints run against each value a field holds, so a multi-valued
 field is checked item by item while cardinality sees the whole list.
+
+The reference check refuses a reference to a content entity that is not a whole number,
+since content entities are numbered.
 
 An internal link is written `internal:/path`. `LinkResolver` resolves it to the route
 serving that path, and reports an absolute uri as external. `EntityReferenceResolver`
@@ -150,6 +182,10 @@ List<Object> ids = queries.query("node")
 
 `count()` runs the same conditions as a count. `inLanguage` and `inRevision` narrow
 field conditions to one translation and one revision.
+
+`Sort.byPosition(property, values)` orders the results by where each one's value comes in
+`values`, those whose value is not in the list after the rest, such as ids in the order
+a search ranked them. An empty list leaves the order to the other sorts.
 
 A query carrying an access tag is published as an `EntityQueryAlterEvent` before it
 runs, so the access system and modules can add conditions to it, the way Drupal's

@@ -87,6 +87,154 @@ cacheability from there, so the shell's metadata describes the shell and the pag
 describes the whole. A built part may hold placeholders of its own, which are filled in
 turn. This is the piece a dynamic page cache and a streamed first render are built on.
 
+## The render cache
+
+`Renderable.cacheKeys(...)` keeps a node's markup in the render cache:
+
+```java
+Renderable.of("markup")
+        .with("value", teaser)
+        .cacheTag(CacheTags.entity("node", 7))
+        .cacheContext(CacheContexts.USER_ROLES)
+        .cacheKeys("teaser", "7");
+```
+
+`RenderService` looks the node up before drawing it. A kept entry is used as it is, and
+brings its cacheability and attachments to the page. Otherwise the node is drawn and
+kept, unless its merged cacheability may not be cached or its drawing holds a
+placeholder, since a placeholder is filled in for one drawing only.
+
+`RenderCache` keeps entries in the Spring cache `render`, from the `CacheManager` the
+site defines, held in memory. An entry is kept under its keys and the values of its
+cache contexts. A node's drawing can vary by contexts that only parts inside it carry,
+so when the merged contexts are more than the node's own, the entry under the node's own
+contexts holds a redirect naming all of them, and the markup is kept under those. An
+entry is used until one of its tags is invalidated or its max age passes.
+
+### Cache tags
+
+`CacheTags` names the tags the site invalidates on its own:
+
+| Tag | Invalidated when |
+| --- | --- |
+| `<entity type>:<id>`, such as `node:42` | the entity is saved or deleted |
+| `<entity type>_list`, such as `node_list` | any entity of the type is saved or deleted, or the search index of the type changes |
+| `config:<name>`, such as `config:system.site` | the config object is saved or deleted |
+
+`CacheTagInvalidator.invalidate(tags)` invalidates tags. It keeps a count of
+invalidations per tag, and an entry keeps the checksum of its tags' counts from when it
+was stored, so an entry whose tag was invalidated since no longer matches and is
+dropped when next read. Unrelated entries are left as they are. Each invalidation also
+publishes a `CacheTagsInvalidatedEvent`, which caches kept outside the render cache,
+such as the views cache, listen to. The counts are kept in memory, so another instance
+of the site keeps its own.
+
+### Cache contexts
+
+`CacheContexts` reads each context's value for the current request:
+
+| Context | Varies by |
+| --- | --- |
+| `user` | the account's name, empty for someone not signed in |
+| `user.roles` | the roles held |
+| `user.permissions` | the authorities held |
+| `languages` | the request's language |
+| `url` | the path and query string |
+| `url.path`, `route` | the path |
+| `url.query_args` | every query argument |
+| `url.query_args:<name>` | one query argument |
+
+Outside a request the request contexts read as empty. A context the site does not have
+is refused.
+
+## Named placeholders
+
+`Renderable.placeholder(builderId, arguments)` is a placeholder the `PlaceholderBuilder`
+bean with that id fills, given the arguments. Unlike `Renderable.lazy`, whose builder is
+code from one request, a named placeholder can be built again for another request, which
+is what lets a page kept with it be reused. A placeholder naming a builder the site does
+not have is refused when the page is drawn.
+
+`RenderService.renderShell(root)` draws a tree with a marker for each placeholder and
+gives a `Shell`: the markup, what the drawing carries without the placeholders, and
+their builders. `RenderService.fill(shell)` builds the placeholders into it. `render` is
+the two in turn.
+
+## Page caches
+
+`PageCacheFilter` answers reads of pages from the `PageCache`, which keeps them in the
+Spring cache `page`. Every answer it considers carries the header `X-SpringDrop-Cache`,
+`HIT` or `MISS`.
+
+A page is kept only when its controller opts in with `PageChrome.withPageCache()`, after
+checking that everything the page shows carries the cache tags and contexts it depends
+on. The front page and its listing at `/node` opt in. The page renderer adds what the
+chrome depends on: `config:system.site`, the main menu's tags, and the
+`user.permissions` context. A page showing status messages may not be cached.
+
+| Reader | Kept | Varies by |
+| --- | --- | --- |
+| not signed in, with no session | the finished page | the address and the page's contexts |
+| signed in | the page's shell, its named placeholders built for each request | the address, the account, and the shell's contexts |
+
+The address is the path the reader asked for, before an alias or a view page was
+answered in its place, with the query arguments in order of name. A page is kept only
+when it answered 200 to a `GET` or `HEAD`. It is not kept when it holds a form's CSRF
+token, which belongs to one session, when a page for someone not signed in started a
+session, or when a shell holds a placeholder that is not named. The nonce the page's
+inline scripts carry is replaced with the one minted for each request it answers.
+
+A kept page is used until one of its tags is invalidated, or for at most
+`springdrop.cache.page-max-age`, ten minutes unless that says otherwise. The limit
+covers what a page shows without tags of its own, such as entities referenced from a
+teaser, its tabs, and its breadcrumb.
+
+## Streaming placeholders
+
+For someone signed in whose browser runs scripts, a page with placeholders is streamed
+in parts: `PageRenderer.finish` leaves the placeholders out, marking each with a
+`data-big-pipe-placeholder-id` span, and `BigPipeFilter` sends the page up to the end of
+its body and flushes it. Each placeholder is then built and sent as a JSON data script,
+
+```html
+<script type="application/json" data-big-pipe-replacement-for="placeholder-1">{"html":"..."}</script>
+```
+
+flushed in turn, and the rest of the page follows. `/js/big-pipe.js`, loaded by an
+inline module in the head, puts each placeholder's markup in its marker's place as its
+script arrives. A placeholder's style sheets are sent with its markup. The filter runs
+inside the theme filter, so placeholders are drawn in the request's theme, and outside
+the page caches, so a page answered from the dynamic page cache is streamed as well.
+
+The shell's head holds a `noscript` refresh to
+`/big-pipe/no-js?destination=<the page>`, which sets the `springdrop-nojs` cookie and
+sends the reader back, or to the front page for a destination off the site. With the cookie, pages are drawn whole, their placeholders built
+in place. Someone not signed in always gets the page whole.
+
+## Script assets
+
+The site's script modules live in `static/js`, one file each, served at `/js/<module>.js`
+in development. A template loads a module through the `assets` bean:
+
+```html
+<script type="module" th:attr="nonce=${cspNonce}" th:inline="javascript">
+  import { initFormStates } from [[${@assets.url('/js/form-states.js')}]];
+  initFormStates();
+</script>
+```
+
+The build bundles them for production. `assetEntry` writes an entry re-exporting every
+module's `init` functions, `bundleAssets` bundles and minifies it with esbuild from
+`node_modules` (`./test.sh` installs it when missing), and `fingerprintAssets` names the
+bundle with the first 16 hex digits of its SHA-256 and records it in
+`springdrop/assets.properties`. The site imports that file as config.
+
+With `springdrop.assets.aggregate` on, as the `prod` profile sets it, `assets.url` gives
+the bundle's address, `/assets/springdrop.<hash>.js`, for every module. The bundle is
+served as public and immutable with a `Cache-Control` max age of a year, since a change to any
+module gives it a new name. Aggregation on with no bundle named stops the site at start.
+With it off, each module is loaded from its own address.
+
 ## The theme layer
 
 A renderable names one fragment. The theme layer chooses which, so a site changes what
@@ -163,7 +311,8 @@ return pages.render(chrome, content).html();
 ```
 
 The content is a child of the layout, so its cache tags and attachments bubble through
-the layout to the page.
+the layout to the page. `PageRenderer` writes the attachments into the page: style sheets
+and head tags at the end of the head, and scripts at the end of the body as modules.
 
 `PageChrome.withRegion(region, renderable)` puts something in a region of the layout.
 Each region is a child of the layout in the slot named after it, and the layout draws

@@ -22,6 +22,6 @@ public record ElementState(String condition, String dependsOn, String equalsValu
     }
 
     public boolean holds(Object submittedValue) {
-        return equalsValue.equals(String.valueOf(submittedValue));
+        return equalsValue.equals(submittedValue == null ? "" : String.valueOf(submittedValue));
     }
 }

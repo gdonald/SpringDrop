@@ -27,6 +27,11 @@ if [ -z "${JAVA_HOME:-}" ] && [ -x /opt/homebrew/opt/openjdk@25/bin/java ]; then
   export JAVA_HOME="/opt/homebrew/opt/openjdk@25/libexec/openjdk.jdk/Contents/Home"
 fi
 
+# The backend build bundles the site's scripts with esbuild from node_modules.
+if [ ! -d node_modules ]; then
+  npm ci 2>/dev/null || npm install
+fi
+
 if $run_backend; then
   echo "==> Backend: tests + coverage gate"
   ./gradlew --console=plain test coverageGate
@@ -34,9 +39,6 @@ fi
 
 if $run_frontend; then
   echo "==> Frontend: tests + coverage gate"
-  if [ ! -d node_modules ]; then
-    npm ci 2>/dev/null || npm install
-  fi
   npm test
 fi
 

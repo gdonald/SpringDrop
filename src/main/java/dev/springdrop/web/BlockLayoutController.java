@@ -374,7 +374,7 @@ public class BlockLayoutController {
     }
 
     private BlockPlugin pluginOf(String pluginId) {
-        if (!blocks.has(pluginId)) {
+        if (!blocks.placeableInThemes(pluginId)) {
             throw new EntityNotFoundException("block plugin", pluginId);
         }
         return blocks.plugin(pluginId);

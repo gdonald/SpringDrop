@@ -1,0 +1,6 @@
+administer image styles:
+  title: Administer image styles
+  description: Add image styles, choose their effects, and flush the images drawn with them.
+administer responsive images:
+  title: Administer responsive image styles
+  description: Add responsive image styles and choose the image style drawn at each breakpoint.

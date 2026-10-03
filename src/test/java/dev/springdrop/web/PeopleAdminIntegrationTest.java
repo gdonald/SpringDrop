@@ -54,6 +54,10 @@ class PeopleAdminIntegrationTest extends AbstractIntegrationTest {
                     BaseFieldDefinition.optional(BaseFieldDefinition.OWNER, ColumnType.BIGINT),
                     BaseFieldDefinition.optional(BaseFieldDefinition.STATUS, ColumnType.BOOLEAN)));
 
+    /** Content that records an owner but whose tables are never installed. */
+    static final EntityType UNSTORED = EntityType.content("unstored_article", Article.class)
+            .withBaseFields(List.of(BaseFieldDefinition.optional(BaseFieldDefinition.OWNER, ColumnType.BIGINT)));
+
     private static final String EDITOR = "editor";
 
     private static final String SECRET = "correct horse battery staple";
@@ -300,6 +304,17 @@ class PeopleAdminIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void contentTypesWhoseTablesAreNotInstalledArePassedOver() {
+        UserAccount edith = account("edith");
+        articleOwnedBy(1L, edith.id());
+
+        cancellations.cancel(edith.id(), CancellationMethod.REASSIGN_TO_ANONYMOUS);
+
+        assertThat(entities.load("owned_article", 1L)).hasValueSatisfying(article ->
+                assertThat(article.fields()).containsEntry(BaseFieldDefinition.OWNER, UserAccount.ANONYMOUS_ID));
+    }
+
+    @Test
     void everyMethodSaysWhatItDoes() {
         assertThat(cancellations.methods()).extracting(method -> method.label())
                 .allSatisfy(label -> assertThat(label).isNotBlank());
@@ -325,7 +340,7 @@ class PeopleAdminIntegrationTest extends AbstractIntegrationTest {
 
         @Bean
         EntityTypeProvider ownedArticleType() {
-            return () -> List.of(ARTICLE);
+            return () -> List.of(ARTICLE, UNSTORED);
         }
     }
 }

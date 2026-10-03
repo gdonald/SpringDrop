@@ -33,6 +33,9 @@ public class UserEntityType implements EntityTypeProvider {
     /** The roles an account holds, on top of the one everyone signed in has. */
     public static final String ROLES = "roles";
 
+    /** Whether others may send the account messages through its personal contact form. */
+    public static final String CONTACT = "contact";
+
     public static EntityType definition() {
         return EntityType.content(ID, UserAccount.class)
                 .withBaseFields(List.of(
@@ -44,7 +47,8 @@ public class UserEntityType implements EntityTypeProvider {
                         BaseFieldDefinition.optional(LAST_LOGIN, ColumnType.TIMESTAMP),
                         BaseFieldDefinition.optional(TIMEZONE, ColumnType.VARCHAR),
                         BaseFieldDefinition.optional(PREFERRED_LANGUAGE, ColumnType.VARCHAR),
-                        BaseFieldDefinition.optional(ROLES, ColumnType.JSONB)));
+                        BaseFieldDefinition.optional(ROLES, ColumnType.JSONB),
+                        BaseFieldDefinition.optional(CONTACT, ColumnType.BOOLEAN).withDefault(true)));
     }
 
     @Override

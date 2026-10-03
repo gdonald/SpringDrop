@@ -36,17 +36,25 @@ public class PermissionFileLoader implements PermissionProvider {
 
     private final ResourcePatternResolver resourcePatternResolver;
 
+    // The declaration files ship with the code, so they are read once.
+    private volatile List<PermissionDefinition> declared;
+
     public PermissionFileLoader(ResourcePatternResolver resourcePatternResolver) {
         this.resourcePatternResolver = resourcePatternResolver;
     }
 
     @Override
     public List<PermissionDefinition> permissions() {
-        List<PermissionDefinition> permissions = new ArrayList<>();
-        for (Resource resource : declarations()) {
-            permissions.addAll(parse(resource));
+        List<PermissionDefinition> read = declared;
+        if (read == null) {
+            List<PermissionDefinition> permissions = new ArrayList<>();
+            for (Resource resource : declarations()) {
+                permissions.addAll(parse(resource));
+            }
+            read = List.copyOf(permissions);
+            declared = read;
         }
-        return List.copyOf(permissions);
+        return read;
     }
 
     private Resource[] declarations() {

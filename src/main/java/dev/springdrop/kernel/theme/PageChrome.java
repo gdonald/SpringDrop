@@ -26,7 +26,8 @@ public record PageChrome(
         List<Link> localActions,
         List<StatusMessage> messages,
         Optional<Pager> pager,
-        Map<String, Renderable> regions) {
+        Map<String, Renderable> regions,
+        boolean pageCacheable) {
 
     public PageChrome {
         primaryNavigation = List.copyOf(primaryNavigation);
@@ -39,45 +40,54 @@ public record PageChrome(
 
     public static PageChrome of(String siteName, String title) {
         return new PageChrome(siteName, "", title,
-                List.of(), List.of(), List.of(), List.of(), List.of(), Optional.empty(), Map.of());
+                List.of(), List.of(), List.of(), List.of(), List.of(), Optional.empty(), Map.of(), false);
     }
 
     public PageChrome withSlogan(String text) {
         return new PageChrome(siteName, text, title,
-                primaryNavigation, breadcrumbs, tabs, localActions, messages, pager, regions);
+                primaryNavigation, breadcrumbs, tabs, localActions, messages, pager, regions, pageCacheable);
     }
 
     public PageChrome withPrimaryNavigation(List<Link> links) {
         return new PageChrome(siteName, slogan, title,
-                links, breadcrumbs, tabs, localActions, messages, pager, regions);
+                links, breadcrumbs, tabs, localActions, messages, pager, regions, pageCacheable);
     }
 
     public PageChrome withBreadcrumbs(List<Link> trail) {
         return new PageChrome(siteName, slogan, title,
-                primaryNavigation, trail, tabs, localActions, messages, pager, regions);
+                primaryNavigation, trail, tabs, localActions, messages, pager, regions, pageCacheable);
     }
 
     public PageChrome withTabs(List<Tab> localTasks) {
         return new PageChrome(siteName, slogan, title,
-                primaryNavigation, breadcrumbs, localTasks, localActions, messages, pager, regions);
+                primaryNavigation, breadcrumbs, localTasks, localActions, messages, pager, regions, pageCacheable);
     }
 
     public PageChrome withLocalActions(List<Link> actions) {
         return new PageChrome(siteName, slogan, title,
-                primaryNavigation, breadcrumbs, tabs, actions, messages, pager, regions);
+                primaryNavigation, breadcrumbs, tabs, actions, messages, pager, regions, pageCacheable);
     }
 
     public PageChrome withMessage(StatusMessage message) {
         List<StatusMessage> combined = new ArrayList<>(messages);
         combined.add(message);
         return new PageChrome(siteName, slogan, title,
-                primaryNavigation, breadcrumbs, tabs, localActions, combined, pager, regions);
+                primaryNavigation, breadcrumbs, tabs, localActions, combined, pager, regions, pageCacheable);
     }
 
     public PageChrome withPager(Pager listingPager) {
         return new PageChrome(siteName, slogan, title,
                 primaryNavigation, breadcrumbs, tabs, localActions, messages, Optional.of(listingPager),
-                regions);
+                regions, pageCacheable);
+    }
+
+    /**
+     * Lets the page caches keep the page. A page opts in once everything it
+     * shows carries the cache tags and contexts it depends on.
+     */
+    public PageChrome withPageCache() {
+        return new PageChrome(siteName, slogan, title,
+                primaryNavigation, breadcrumbs, tabs, localActions, messages, pager, regions, true);
     }
 
     /** Puts what a region holds on the page, replacing anything it held before. */
@@ -85,6 +95,6 @@ public record PageChrome(
         Map<String, Renderable> combined = new LinkedHashMap<>(regions);
         combined.put(region, content);
         return new PageChrome(siteName, slogan, title,
-                primaryNavigation, breadcrumbs, tabs, localActions, messages, pager, combined);
+                primaryNavigation, breadcrumbs, tabs, localActions, messages, pager, combined, pageCacheable);
     }
 }

@@ -14,10 +14,12 @@ import dev.springdrop.kernel.form.ElementType;
 import dev.springdrop.kernel.form.FormElement;
 import dev.springdrop.kernel.form.FormRenderer;
 import dev.springdrop.kernel.form.SelectOption;
+import dev.springdrop.kernel.plugin.PluginManager;
 import dev.springdrop.kernel.plugin.PluginRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -46,6 +48,9 @@ public class DisplayUiController {
     public static final String LABEL_SUFFIX = "_label";
 
     public static final String MODE = "mode";
+
+    /** Follows the field name in the names of its formatter's settings. */
+    public static final String SETTINGS_SUFFIX = "_settings_";
 
     private final FieldConfigManager fields;
     private final FormDisplayManager formDisplays;
@@ -124,6 +129,7 @@ public class DisplayUiController {
 
         model.addAttribute("title", "Manage display");
         model.addAttribute("description", "How each field reads, in the " + mode + " view mode.");
+        model.addAttribute("layoutPath", LayoutBuilderController.layoutPath(entityType, bundle, mode));
         model.addAttribute("action", viewDisplayPath(entityType, bundle) + "?" + MODE + "=" + mode);
         model.addAttribute("formMarkup", renderer.render(displayForm(
                 entityType, bundle, mode, FORMATTER_SUFFIX, formatterOptions(),
@@ -138,11 +144,14 @@ public class DisplayUiController {
             @RequestParam(name = MODE, defaultValue = ViewDisplayConfig.DEFAULT_MODE) String mode,
             @RequestParam Map<String, String> submitted) {
 
+        Map<String, FieldDisplaySlot> previous = viewDisplays.find(entityType, bundle, mode)
+                .map(ViewDisplayConfig::slots).orElse(Map.of());
         ViewDisplayConfig display = ViewDisplayConfig.of(entityType, bundle, mode);
         for (FieldInstanceConfig instance : fields.instances(entityType, bundle)) {
             String field = instance.fieldName();
             display = submitted.containsKey(field + SHOWN_SUFFIX)
-                    ? display.with(slot(field, submitted, FORMATTER_SUFFIX))
+                    ? display.with(withFormatterSettings(slot(field, submitted, FORMATTER_SUFFIX),
+                            previous.get(field), submitted))
                     : display.withoutField(field);
             if (!submitted.containsKey(field + LABEL_SUFFIX)) {
                 display = display.withoutLabel(field);
@@ -150,6 +159,25 @@ public class DisplayUiController {
         }
         viewDisplays.save(display);
         return "redirect:" + viewDisplayPath(entityType, bundle);
+    }
+
+    /**
+     * The slot with the settings its formatter's form gives, or for a formatter
+     * without a form, the settings it already had when the formatter is the same.
+     */
+    private FieldDisplaySlot withFormatterSettings(
+            FieldDisplaySlot slot, FieldDisplaySlot previous, Map<String, String> submitted) {
+
+        PluginManager<FieldFormatter> formatters = pluginRegistry.managerFor(FieldFormatter.class);
+        if (!formatters.has(slot.handler())) {
+            return slot;
+        }
+        FieldFormatter formatter = formatters.get(slot.handler());
+        String prefix = slot.fieldName() + SETTINGS_SUFFIX;
+        Map<String, Object> settings = formatter.settingsForm(prefix, Map.of()).isEmpty()
+                ? (previous != null && previous.handler().equals(slot.handler()) ? previous.settings() : Map.of())
+                : formatter.settingsValues(prefix, submitted);
+        return new FieldDisplaySlot(slot.fieldName(), slot.handler(), slot.weight(), settings);
     }
 
     /** One row per field: its handler, its weight, whether it is shown, and its label. */
@@ -185,12 +213,31 @@ public class DisplayUiController {
                 row.child(FormElement.of(ElementType.CHECKBOX, field + LABEL_SUFFIX)
                         .label("Show label")
                         .value(!hiddenLabels.contains(field)));
+                formatterSettings(field, handlerOf(entityTypeId, field, slot, handlerSuffix), slot)
+                        .ifPresent(row::child);
             }
             form.child(row);
         }
 
         return form.child(FormElement.of(ElementType.ACTIONS, "actions")
                 .child(FormElement.of(ElementType.SUBMIT, "save").label("Save layout")));
+    }
+
+    /** The chosen formatter's settings, for a formatter that has any. */
+    private Optional<FormElement> formatterSettings(String field, String formatterId, FieldDisplaySlot slot) {
+        PluginManager<FieldFormatter> formatters = pluginRegistry.managerFor(FieldFormatter.class);
+        if (!formatters.has(formatterId)) {
+            return Optional.empty();
+        }
+        List<FormElement> elements = formatters.get(formatterId).settingsForm(field + SETTINGS_SUFFIX,
+                slot == null ? Map.of() : slot.settings());
+        if (elements.isEmpty()) {
+            return Optional.empty();
+        }
+        FormElement details = FormElement.of(ElementType.DETAILS, field + SETTINGS_SUFFIX + "details")
+                .label("Formatter settings");
+        elements.forEach(details::child);
+        return Optional.of(details);
     }
 
     /** The handler already chosen, or the one the field type gets by default. */

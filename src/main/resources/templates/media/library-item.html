@@ -1,0 +1,11 @@
+<div class="col" data-media-library-item xmlns:th="http://www.thymeleaf.org">
+  <label class="card h-100">
+    <img class="card-img-top" th:if="${!item.thumbnail.isEmpty()}" th:src="${item.thumbnail}" alt="" loading="lazy">
+    <span class="card-body d-flex gap-2 align-items-start">
+      <input class="form-check-input" type="checkbox" data-media-library-choice th:value="${item.id}"
+             th:checked="${checked}">
+      <span th:text="${item.label}">Main hall</span>
+    </span>
+  </label>
+  <template data-media-library-inputs th:utext="${item.inputs}"></template>
+</div>

@@ -25,4 +25,10 @@ public interface Permissions {
 
     /** Placing blocks in regions, and writing the custom blocks in the library. */
     String ADMINISTER_BLOCKS = "administer blocks";
+
+    /** Adding workflows and deciding their states and transitions. */
+    String ADMINISTER_WORKFLOWS = "administer workflows";
+
+    /** Giving a piece of content that may be edited a layout of its own. */
+    String CONFIGURE_LAYOUT_OVERRIDES = "configure layout overrides";
 }

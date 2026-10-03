@@ -1,0 +1,6 @@
+<div class="layout row" th:attr="data-layout=${layout},data-column-widths=${columnWidths}"
+     xmlns:th="http://www.thymeleaf.org">
+  <div th:each="column : ${columns}" class="layout__region col-12"
+       th:classappend="'col-md-' + ${column.span}" th:attr="data-region=${column.region}"
+       th:utext="${slots[column.region]}">region</div>
+</div>

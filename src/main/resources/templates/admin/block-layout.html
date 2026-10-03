@@ -65,8 +65,8 @@
     <button type="submit" class="btn btn-primary">Save blocks</button>
   </form>
 </main>
-<script type="module" th:attr="nonce=${cspNonce}">
-  import { initDragOrder } from '/js/drag-order.js';
+<script type="module" th:attr="nonce=${cspNonce}" th:inline="javascript">
+  import { initDragOrder } from [[${@assets.url('/js/drag-order.js')}]];
   initDragOrder();
 </script>
 </body>

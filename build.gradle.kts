@@ -1,3 +1,4 @@
+import java.security.MessageDigest
 import org.springframework.boot.gradle.tasks.bundling.BootBuildImage
 import org.springframework.boot.gradle.tasks.run.BootRun
 
@@ -33,6 +34,11 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation(libs.jsoup)
+    implementation(libs.owasp.html.sanitizer)
+    implementation(libs.commonmark)
+    implementation(libs.lucene.core)
+    implementation(libs.lucene.analysis.common)
+    implementation(libs.lucene.highlighter)
     runtimeOnly("org.postgresql:postgresql")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
@@ -114,6 +120,61 @@ tasks.register("coverageGate") {
 
 tasks.check {
     dependsOn("coverageGate")
+}
+
+// Production assets: every module's init functions bundled into one minified file
+// named with a hash of its content, and a manifest naming that file. The site
+// serves the bundle when springdrop.assets.aggregate is on, and the modules one by
+// one otherwise. esbuild comes from node_modules, which npm installs.
+val assetSources = layout.projectDirectory.dir("src/main/resources/static/js")
+val assetWork = layout.buildDirectory.dir("assets")
+val generatedAssets = layout.buildDirectory.dir("generated-assets")
+
+val assetEntry = tasks.register("assetEntry") {
+    inputs.dir(assetSources)
+    val entry = assetWork.map { it.file("entry.js") }
+    outputs.file(entry)
+    doLast {
+        val exports = assetSources.asFile.listFiles { file -> file.name.endsWith(".js") }!!
+            .sortedBy { it.name }
+            .flatMap { module ->
+                Regex("""^export function (init\w+)""", RegexOption.MULTILINE).findAll(module.readText())
+                    .map { "export { ${it.groupValues[1]} } from '${module.absolutePath}';" }
+                    .toList()
+            }
+        entry.get().asFile.apply { parentFile.mkdirs() }.writeText(exports.joinToString("\n", postfix = "\n"))
+    }
+}
+
+val bundleAssets = tasks.register<Exec>("bundleAssets") {
+    dependsOn(assetEntry)
+    inputs.dir(assetSources)
+    val bundle = assetWork.map { it.file("springdrop.js") }
+    outputs.file(bundle)
+    executable = layout.projectDirectory.file("node_modules/.bin/esbuild").asFile.path
+    args(assetWork.get().file("entry.js").asFile.path, "--bundle", "--minify", "--format=esm",
+        "--outfile=" + bundle.get().asFile.path, "--log-level=warning")
+}
+
+val fingerprintAssets = tasks.register("fingerprintAssets") {
+    dependsOn(bundleAssets)
+    val bundle = assetWork.map { it.file("springdrop.js") }
+    inputs.file(bundle)
+    outputs.dir(generatedAssets)
+    doLast {
+        val bytes = bundle.get().asFile.readBytes()
+        val hash = MessageDigest.getInstance("SHA-256").digest(bytes)
+            .joinToString("") { "%02x".format(it) }.take(16)
+        val root = generatedAssets.get().asFile.apply { deleteRecursively() }
+        root.resolve("static/assets").apply { mkdirs() }.resolve("springdrop.$hash.js").writeBytes(bytes)
+        root.resolve("springdrop").apply { mkdirs() }.resolve("assets.properties")
+            .writeText("springdrop.assets.bundle=/assets/springdrop.$hash.js\n")
+    }
+}
+
+tasks.processResources {
+    dependsOn(fingerprintAssets)
+    from(generatedAssets)
 }
 
 tasks.named<BootRun>("bootRun") {

@@ -134,6 +134,16 @@ class EntityQueryIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void sortsByThePositionOfEachValueInAList() {
+        assertThat(query().sort(Sort.byPosition("id", List.of(3L, 1L))).sort(Sort.ascending("label")).ids())
+                .containsExactly(3L, 1L, 2L, 4L);
+        assertThat(query().sort(Sort.byPosition("category", List.of("music", "toys"))).sort(Sort.ascending("id"))
+                .ids()).containsExactly(4L, 2L, 1L, 3L);
+        assertThat(query().sort(Sort.byPosition("id", List.of())).sort(Sort.descending("id")).ids())
+                .containsExactly(4L, 3L, 2L, 1L);
+    }
+
+    @Test
     void paginatesWithARange() {
         List<Object> ids = query().sort(Sort.ascending("label")).range(1, 2).ids();
 

@@ -1,8 +1,8 @@
 package dev.springdrop.kernel.field.display;
 
 import dev.springdrop.kernel.config.ConfigStore;
+import dev.springdrop.kernel.entity.EntityData;
 import dev.springdrop.kernel.field.FieldConfigManager;
-import dev.springdrop.kernel.field.FieldInstanceConfig;
 import dev.springdrop.kernel.field.formatter.FieldFormatterManager;
 import dev.springdrop.kernel.field.formatter.FormatterContext;
 import java.util.Comparator;
@@ -50,12 +50,26 @@ public class ViewDisplayManager {
 
     /** The bundle's fields rendered for reading, in the order the display puts them. */
     public String render(String entityTypeId, String bundle, String mode, Map<String, Object> values) {
+        return render(entityTypeId, bundle, mode, values, Optional.empty());
+    }
+
+    /**
+     * The entity's fields rendered for reading, each formatter told which entity
+     * the field belongs to. An unbundled entity's fields hang on its type's name.
+     */
+    public String render(EntityData entity, String mode) {
+        String bundle = (entity.bundle() == null) ? entity.entityType() : entity.bundle();
+        return render(entity.entityType(), bundle, mode, entity.fields(), Optional.of(entity));
+    }
+
+    private String render(String entityTypeId, String bundle, String mode, Map<String, Object> values,
+            Optional<EntityData> entity) {
         Optional<ViewDisplayConfig> display = find(entityTypeId, bundle, mode);
 
         StringBuilder markup = new StringBuilder();
         for (String fieldName : shownFields(entityTypeId, bundle, display)) {
-            markup.append(formatters.render(context(entityTypeId, bundle, fieldName, display),
-                    values.get(fieldName)));
+            FormatterContext context = context(entityTypeId, bundle, fieldName, display);
+            markup.append(formatters.render(entity.map(context::withEntity).orElse(context), values.get(fieldName)));
         }
         return markup.toString();
     }
@@ -65,20 +79,7 @@ public class ViewDisplayManager {
 
         FormatterContext context = formatters.context(
                 entityTypeId, bundle, fieldName, settingsOf(display, fieldName));
-        return showsLabel(display, fieldName) ? context : withoutLabel(context);
-    }
-
-    private static FormatterContext withoutLabel(FormatterContext context) {
-        FieldInstanceConfig unlabelled = new FieldInstanceConfig(
-                context.instance().fieldName(),
-                context.instance().entityTypeId(),
-                context.instance().bundle(),
-                "",
-                context.instance().description(),
-                context.instance().required(),
-                context.instance().defaultValue(),
-                context.instance().settings());
-        return new FormatterContext(context.storage(), unlabelled, context.settings());
+        return showsLabel(display, fieldName) ? context : context.withoutLabel();
     }
 
     private static Map<String, Object> settingsOf(Optional<ViewDisplayConfig> display, String fieldName) {
@@ -93,6 +94,11 @@ public class ViewDisplayManager {
 
     private static boolean showsLabel(Optional<ViewDisplayConfig> display, String fieldName) {
         return display.map(layout -> layout.showsLabelOf(fieldName)).orElse(true);
+    }
+
+    /** The fields this view mode shows, in the order the display puts them. */
+    public List<String> shownFields(String entityTypeId, String bundle, String mode) {
+        return shownFields(entityTypeId, bundle, find(entityTypeId, bundle, mode));
     }
 
     private List<String> shownFields(

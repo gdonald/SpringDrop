@@ -149,6 +149,26 @@ class FormRendererTest {
     }
 
     @Test
+    void aTickedCheckboxSubmitsTheValueTheStatesScriptReadsItAs() {
+        Document document = render(element(ElementType.CHECKBOX, "published").label("Published"));
+
+        assertThat(document.selectFirst("input[type=checkbox]").val()).isEqualTo(FormRenderer.CHECKED_VALUE);
+    }
+
+    @Test
+    void aConditionOnATickedCheckboxHoldsOnTheServer() {
+        FormElement tree = element(ElementType.CONTAINER, "settings")
+                .child(element(ElementType.CHECKBOX, "published").label("Published"))
+                .child(element(ElementType.CHECKBOX, "default_revision").label("Default revision")
+                        .requiredWhen("published", FormRenderer.CHECKED_VALUE));
+
+        FormState state = new FormBuilder(List.of(), new FormRenderer(), event -> { })
+                .validate(tree, Map.of("published", FormRenderer.CHECKED_VALUE));
+
+        assertThat(state.errors()).containsOnlyKeys("default_revision");
+    }
+
+    @Test
     void anUncheckedCheckboxShowsAnErrorOnItself() {
         Document document = render(element(ElementType.CHECKBOX, "agreed").label("I agree"),
                 Map.of("agreed", "You must agree."));

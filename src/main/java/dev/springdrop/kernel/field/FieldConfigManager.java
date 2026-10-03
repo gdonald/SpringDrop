@@ -90,6 +90,26 @@ public class FieldConfigManager implements BundleFieldMap {
         return List.copyOf(instances);
     }
 
+    /** Every field storage of one entity type. */
+    public List<FieldStorageConfig> storages(String entityTypeId) {
+        List<FieldStorageConfig> storages = new ArrayList<>();
+        String prefix = FieldStorageConfig.CONFIG_PREFIX + "." + entityTypeId;
+        for (String name : configStore.listNames(prefix)) {
+            findStorage(entityTypeId, name.substring(prefix.length() + 1)).ifPresent(storages::add);
+        }
+        return List.copyOf(storages);
+    }
+
+    /** Every field instance on every bundle of every entity type. */
+    public List<FieldInstanceConfig> allInstances() {
+        List<FieldInstanceConfig> instances = new ArrayList<>();
+        for (String name : configStore.listNames(FieldInstanceConfig.CONFIG_PREFIX)) {
+            String[] parts = name.substring(FieldInstanceConfig.CONFIG_PREFIX.length() + 1).split("\\.");
+            findInstance(parts[0], parts[1], parts[2]).ifPresent(instances::add);
+        }
+        return List.copyOf(instances);
+    }
+
     @Override
     public List<String> fieldNames(String entityTypeId, String bundle) {
         return instances(entityTypeId, bundle).stream().map(instance -> instance.fieldName()).toList();

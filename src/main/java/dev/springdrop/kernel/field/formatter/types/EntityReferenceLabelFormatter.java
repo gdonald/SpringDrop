@@ -7,6 +7,7 @@ import dev.springdrop.kernel.entity.EntityTypeManager;
 import dev.springdrop.kernel.field.formatter.FieldFormatter;
 import dev.springdrop.kernel.field.formatter.FormatterContext;
 import dev.springdrop.kernel.field.types.EntityReferenceFieldType;
+import dev.springdrop.kernel.path.PathAliasManager;
 import dev.springdrop.kernel.plugin.SpringDropPlugin;
 import java.util.Optional;
 import org.springframework.web.util.HtmlUtils;
@@ -29,10 +30,13 @@ public class EntityReferenceLabelFormatter implements FieldFormatter {
 
     private final EntityCrudService entities;
     private final EntityTypeManager entityTypeManager;
+    private final PathAliasManager aliases;
 
-    public EntityReferenceLabelFormatter(EntityCrudService entities, EntityTypeManager entityTypeManager) {
+    public EntityReferenceLabelFormatter(EntityCrudService entities, EntityTypeManager entityTypeManager,
+            PathAliasManager aliases) {
         this.entities = entities;
         this.entityTypeManager = entityTypeManager;
+        this.aliases = aliases;
     }
 
     @Override
@@ -61,6 +65,6 @@ public class EntityReferenceLabelFormatter implements FieldFormatter {
     private Optional<String> path(String targetType, Object id) {
         EntityType type = entityTypeManager.require(targetType);
         return Optional.ofNullable(type.links().get(CANONICAL))
-                .map(link -> link.replace("{" + targetType + "}", String.valueOf(id)));
+                .map(link -> aliases.outbound(link.replace("{" + targetType + "}", String.valueOf(id))));
     }
 }

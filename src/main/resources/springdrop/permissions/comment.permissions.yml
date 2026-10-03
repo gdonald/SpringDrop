@@ -1,0 +1,16 @@
+access comments:
+  title: View comments
+  description: Read published comments.
+post comments:
+  title: Post comments
+  description: Write comments where they are open.
+skip comment approval:
+  title: Skip comment approval
+  description: Have your comments published without waiting for approval.
+edit own comments:
+  title: Edit own comments
+  description: Change the comments you wrote.
+administer comments:
+  title: Administer comments and comment settings
+  description: Approve, change, and delete every comment, including ones waiting for approval.
+  restricted: true

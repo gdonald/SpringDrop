@@ -16,11 +16,17 @@
     <div th:utext="${formMarkup}"></div>
   </form>
 </main>
-<script type="module" th:attr="nonce=${cspNonce}">
-  import { initFormStates } from '/js/form-states.js';
-  import { initFormValidation } from '/js/form-validation.js';
+<script type="module" th:attr="nonce=${cspNonce}" th:inline="javascript">
+  import { initFormStates } from [[${@assets.url('/js/form-states.js')}]];
+  import { initFormValidation } from [[${@assets.url('/js/form-validation.js')}]];
+  import { initFileUpload } from [[${@assets.url('/js/file-upload.js')}]];
+  import { initEditors } from [[${@assets.url('/js/editor.js')}]];
+  import { initMediaLibrary } from [[${@assets.url('/js/media-library.js')}]];
   initFormStates();
   initFormValidation();
+  initFileUpload();
+  initEditors();
+  initMediaLibrary();
 </script>
 </body>
 </html>

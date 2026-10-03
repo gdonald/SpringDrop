@@ -1,5 +1,6 @@
 package dev.springdrop.kernel.field;
 
+import dev.springdrop.kernel.form.FormElement;
 import dev.springdrop.kernel.validation.ConstraintSpec;
 import java.util.List;
 import java.util.Map;
@@ -31,4 +32,14 @@ public interface FieldType {
     Map<String, Object> defaultStorageSettings();
 
     Map<String, Object> defaultInstanceSettings();
+
+    /** The elements an instance's own settings are edited with on the Field UI, filled from them. */
+    default List<FormElement> instanceSettingsForm(Map<String, Object> settings) {
+        return List.of();
+    }
+
+    /** The instance settings a submission of {@link #instanceSettingsForm} gives. */
+    default Map<String, Object> instanceSettingsValues(Map<String, String> submitted) {
+        return Map.of();
+    }
 }

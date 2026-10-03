@@ -61,7 +61,13 @@ public class EntityQueryExecutor {
         List<SortField<?>> sorts = new ArrayList<>();
         for (Sort sort : query.sorts()) {
             Field<?> field = propertyField(type, query, sort.property());
-            sorts.add(sort.ascending() ? field.asc() : field.desc());
+            if (sort.positions() != null) {
+                if (!sort.positions().isEmpty()) {
+                    sorts.add(position(type, sort, field).asc());
+                }
+            } else {
+                sorts.add(sort.ascending() ? field.asc() : field.desc());
+            }
         }
 
         var withConditions = select.where(whereClause(type, query)).orderBy(sorts);
@@ -69,6 +75,23 @@ public class EntityQueryExecutor {
             return List.copyOf(withConditions.offset(query.offset()).limit(query.limit()).fetch(idField));
         }
         return List.copyOf(withConditions.fetch(idField));
+    }
+
+    /** Each value's place in a sort by position, and for any other value, the place after the last. */
+    private Field<Integer> position(EntityType type, Sort sort, Field<?> field) {
+        boolean base = isBaseColumn(type, sort.property());
+        List<Object> values = sort.positions();
+        var places = DSL.choose(field.coerce(Object.class));
+        org.jooq.CaseWhenStep<Object, Integer> ordered = places.when(compared(base, values.getFirst()),
+                DSL.inline(0));
+        for (int place = 1; place < values.size(); place++) {
+            ordered = ordered.when(compared(base, values.get(place)), DSL.inline(place));
+        }
+        return ordered.otherwise(DSL.inline(values.size()));
+    }
+
+    private Object compared(boolean base, Object value) {
+        return base ? value : jsonb(value);
     }
 
     long count(EntityQuery query) {

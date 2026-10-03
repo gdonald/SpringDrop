@@ -19,8 +19,8 @@
     </div>
   </div>
 </main>
-<script type="module" th:attr="nonce=${cspNonce}">
-  import { initFormValidation } from '/js/form-validation.js';
+<script type="module" th:attr="nonce=${cspNonce}" th:inline="javascript">
+  import { initFormValidation } from [[${@assets.url('/js/form-validation.js')}]];
   initFormValidation();
 </script>
 </body>

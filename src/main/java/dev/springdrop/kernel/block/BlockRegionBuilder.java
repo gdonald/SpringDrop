@@ -77,18 +77,31 @@ public class BlockRegionBuilder {
 
     /** One placement drawn through the block template, or nothing when its plugin has nothing to show. */
     public Optional<Renderable> render(BlockPlacement placement, BlockContext context) {
-        BlockPlugin plugin = blocks.plugin(placement.plugin());
-        return plugin.build(context, placement.settings()).map(content -> {
+        return render(placement.instance(), suggestions(placement), context)
+                .map(block -> block.cacheTag(placement.cacheTag()));
+    }
+
+    /**
+     * One configured block drawn through the first of the given block templates
+     * the theme has, or nothing when its plugin has nothing to show.
+     */
+    public Optional<Renderable> render(BlockInstance instance, List<String> suggestions, BlockContext context) {
+        BlockPlugin plugin = blocks.plugin(instance.plugin());
+        return plugin.build(context, instance.settings()).map(content -> {
             Map<String, Object> variables = new LinkedHashMap<>();
-            variables.put("id", placement.id());
-            variables.put("plugin", placement.plugin());
-            variables.put("label", placement.label());
-            variables.put("labelDisplay", placement.labelDisplay());
-            return themes.build(TEMPLATE_DIRECTORY, suggestions(placement), variables)
+            variables.put("id", instance.id());
+            variables.put("plugin", instance.plugin());
+            variables.put("label", instance.label());
+            variables.put("labelDisplay", instance.labelDisplay());
+            return themes.build(TEMPLATE_DIRECTORY, suggestions, variables)
                     .child(content)
-                    .cacheability(plugin.cacheability(placement.settings()))
-                    .cacheTag(placement.cacheTag());
+                    .cacheability(plugin.cacheability(instance.settings()));
         });
+    }
+
+    /** The plugin with its derivative, then the plugin, then the block template every block falls back to. */
+    public static List<String> suggestions(BlockInstance instance) {
+        return TemplateSuggestions.of(TEMPLATE_BASE, instance.plugin().split(":"));
     }
 
     /**
@@ -98,7 +111,7 @@ public class BlockRegionBuilder {
     static List<String> suggestions(BlockPlacement placement) {
         List<String> names = new ArrayList<>();
         names.add(TEMPLATE_BASE + TemplateSuggestions.SEPARATOR + placement.id());
-        names.addAll(TemplateSuggestions.of(TEMPLATE_BASE, placement.plugin().split(":")));
+        names.addAll(suggestions(placement.instance()));
         return List.copyOf(names);
     }
 

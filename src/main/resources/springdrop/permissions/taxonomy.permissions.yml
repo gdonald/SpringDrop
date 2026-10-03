@@ -1,0 +1,4 @@
+administer taxonomy:
+  title: Administer vocabularies and terms
+  description: Add vocabularies, and add, arrange, change, and delete the terms in every vocabulary.
+  restricted: true

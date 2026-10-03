@@ -116,6 +116,35 @@ public class FieldTableStorage {
                 fields);
     }
 
+    /** Every value a field holds for one entity, in every language and, for a revisionable type, every revision. */
+    public List<Object> everyValue(EntityType type, Object id, String field) {
+        List<String> tables = type.revisionable()
+                ? List.of(tableName(type, field), revisionTableName(type, field))
+                : List.of(tableName(type, field));
+        List<Object> values = new ArrayList<>();
+        for (String table : tables) {
+            dsl.select(VALUE_FIELD).from(DSL.table(DSL.name(table))).where(ENTITY_ID_FIELD.eq(id)).fetch()
+                    .forEach(record -> values.add(objectMapper.readValue(record.get(VALUE_FIELD).data(), Object.class)));
+        }
+        return values;
+    }
+
+    /** Writes the values a field holds in one revision alone, leaving its current values as they are. */
+    public void writeRevision(EntityType type, Object id, Long revisionId, String langcode, String field,
+            Object value) {
+        List<?> values = (value instanceof List<?> list) ? list : List.of(value);
+        writeRows(revisionTableName(type, field),
+                currentCondition(id, langcode).and(REVISION_ID_FIELD.eq(revisionId)),
+                id, revisionId, langcode, values);
+    }
+
+    /** Removes the values the named fields held in one revision of one entity. */
+    public void deleteRevision(EntityType type, Object id, Long revisionId, List<String> fields) {
+        for (String field : fields) {
+            deleteRows(revisionTableName(type, field), ENTITY_ID_FIELD.eq(id).and(REVISION_ID_FIELD.eq(revisionId)));
+        }
+    }
+
     /** Removes every value of every named field for one entity, in all languages and revisions. */
     public void deleteAll(EntityType type, Object id, List<String> fields) {
         for (String field : fields) {

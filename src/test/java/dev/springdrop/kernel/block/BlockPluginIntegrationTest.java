@@ -12,12 +12,14 @@ import dev.springdrop.kernel.block.plugins.MenuBlockDeriver;
 import dev.springdrop.kernel.block.plugins.PageTitleBlock;
 import dev.springdrop.kernel.block.plugins.PoweredByBlock;
 import dev.springdrop.kernel.block.plugins.SiteBrandingBlock;
+import dev.springdrop.kernel.cache.CacheTags;
 import dev.springdrop.kernel.config.ConfigStore;
 import dev.springdrop.kernel.form.ElementType;
 import dev.springdrop.kernel.form.FormElement;
 import dev.springdrop.kernel.form.FormRenderer;
 import dev.springdrop.kernel.menu.MenuConfig;
 import dev.springdrop.kernel.menu.MenuLink;
+import dev.springdrop.kernel.menu.MenuLinkContentEntityType;
 import dev.springdrop.kernel.menu.MenuLinkContentService;
 import dev.springdrop.kernel.menu.MenuManager;
 import dev.springdrop.kernel.render.CacheMetadata;
@@ -206,7 +208,8 @@ class BlockPluginIntegrationTest extends AbstractIntegrationTest {
     void aMenuBlockVariesByPermissionsAndByPageAndIsInvalidatedWithItsMenu() {
         CacheMetadata cacheability = blocks.plugin(MenuBlockDeriver.PRIMARY).cacheability(Map.of());
 
-        assertThat(cacheability.tags()).containsExactly(MenuConfig.cacheTag(MenuConfig.MAIN));
+        assertThat(cacheability.tags()).containsExactly(MenuConfig.cacheTag(MenuConfig.MAIN),
+                CacheTags.config(MenuConfig.configName(MenuConfig.MAIN)), CacheTags.list(MenuLinkContentEntityType.ID));
         assertThat(cacheability.contexts())
                 .containsExactly(RouteAccessChecker.USER_PERMISSIONS_CONTEXT, "url.path");
     }

@@ -52,29 +52,32 @@ public class FieldFormatterManager {
         return pluginRegistry.managerFor(FieldFormatter.class).get(formatterId);
     }
 
-    /** The field as it is read: nothing at all when it holds no values. */
+    /**
+     * The field as it is read: nothing at all when it holds no values, or when
+     * its formatter draws nothing for any of them.
+     */
     public String render(FormatterContext context, Object value) {
         List<Object> values = valuesOf(value);
         if (values.isEmpty()) {
             return "";
         }
-
         FieldFormatter formatter = formatter(context);
+        List<String> items = values.stream().map(item -> formatter.render(context, item)).toList();
+        if (items.stream().allMatch(String::isEmpty)) {
+            return "";
+        }
+
         StringBuilder markup = new StringBuilder("<div class=\"field field-" + context.fieldName() + "\">");
         if (!context.label().isEmpty()) {
             markup.append("<div class=\"field-label fw-semibold\">")
                     .append(HtmlUtils.htmlEscape(context.label()))
                     .append("</div>");
         }
-        if (values.size() == 1) {
-            markup.append("<div class=\"field-item\">")
-                    .append(formatter.render(context, values.getFirst()))
-                    .append("</div>");
+        if (items.size() == 1) {
+            markup.append("<div class=\"field-item\">").append(items.getFirst()).append("</div>");
         } else {
             markup.append("<ul class=\"field-items list-unstyled mb-0\">");
-            values.forEach(item -> markup.append("<li class=\"field-item\">")
-                    .append(formatter.render(context, item))
-                    .append("</li>"));
+            items.forEach(item -> markup.append("<li class=\"field-item\">").append(item).append("</li>"));
             markup.append("</ul>");
         }
         return markup.append("</div>").toString();

@@ -1,0 +1,4 @@
+administer filters:
+  title: Administer text formats and filters
+  description: Add text formats, choose the filters each runs, and write in every format.
+  restricted: true

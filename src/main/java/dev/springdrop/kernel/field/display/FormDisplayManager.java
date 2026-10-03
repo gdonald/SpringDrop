@@ -89,6 +89,11 @@ public class FormDisplayManager {
         return extracted;
     }
 
+    /** The fields a form of this bundle shows, in the order the display puts them. */
+    public List<String> shownFields(String entityTypeId, String bundle, String mode) {
+        return shownFields(entityTypeId, bundle, find(entityTypeId, bundle, mode));
+    }
+
     private List<String> shownFields(
             String entityTypeId, String bundle, Optional<FormDisplayConfig> display) {
 

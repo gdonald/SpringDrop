@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
  * comes from the instance's {@code widget} setting, or from the field type's
  * default. Cardinality decides how many deltas are shown: one for a single-value
  * field, one per value for the rest, with an add-another button while the field
- * can hold more.
+ * can hold more. A widget editing every value in one control is shown once.
  */
 @Component
 public class FieldWidgetManager {
@@ -63,6 +63,9 @@ public class FieldWidgetManager {
         FormElement container = FormElement.of(ElementType.CONTAINER, CONTAINER_PREFIX + context.fieldName())
                 .attribute("class", "mb-4")
                 .attribute("id", CONTAINER_PREFIX + context.fieldName());
+        if (widget instanceof MultipleValueWidget allAtOnce) {
+            return container.child(allAtOnce.elementForAll(context, values));
+        }
         for (int delta = 0; delta < deltas; delta++) {
             container.child(widget.element(context, delta, valueAt(values, delta)));
         }
@@ -79,6 +82,9 @@ public class FieldWidgetManager {
     /** The values a submission holds for this field, in delta order, empties left out. */
     public List<Object> extract(WidgetContext context, Map<String, Object> submitted) {
         FieldWidget widget = widget(context);
+        if (widget instanceof MultipleValueWidget allAtOnce) {
+            return List.copyOf(allAtOnce.extractAll(context, submitted));
+        }
         List<Object> values = new ArrayList<>();
         for (int delta = 0; delta < submittedDeltaLimit(context, submitted); delta++) {
             Object value = widget.extract(context, delta, submitted);

@@ -1,0 +1,45 @@
+<div class="media-library" data-media-library xmlns:th="http://www.thymeleaf.org">
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item" th:each="tab : ${tabs}">
+      <a class="nav-link" th:classappend="${tab.active} ? 'active'" th:href="${tab.path}" th:text="${tab.label}"
+         data-media-library-tab>Image</a>
+    </li>
+  </ul>
+
+  <form class="d-flex gap-2 mb-3" method="get" th:action="${libraryPath}" data-media-library-search>
+    <input type="hidden" th:each="entry : ${context}" th:name="${entry.key}" th:value="${entry.value}">
+    <label class="visually-hidden" for="media-library-search">Name</label>
+    <input class="form-control" id="media-library-search" type="search" name="q" th:value="${search}"
+           placeholder="Name">
+    <button class="btn btn-secondary" type="submit">Search</button>
+  </form>
+
+  <form class="mb-3" method="post" enctype="multipart/form-data" th:if="${mayCreate}" th:action="${addPath}"
+        data-media-library-upload>
+    <input type="hidden" th:each="entry : ${context}" th:name="${entry.key}" th:value="${entry.value}">
+    <div class="mb-2" th:if="${!remote}">
+      <label class="form-label" for="media-library-file">Add a file</label>
+      <input class="form-control" id="media-library-file" type="file" name="file" th:attr="accept=${accept}"
+             required>
+    </div>
+    <div class="mb-2" th:if="${remote}">
+      <label class="form-label" for="media-library-address">Add a video address</label>
+      <input class="form-control" id="media-library-address" type="url" name="address" required maxlength="2048">
+    </div>
+    <div class="mb-2">
+      <label class="form-label" for="media-library-name">Name</label>
+      <input class="form-control" id="media-library-name" type="text" name="name" maxlength="255">
+    </div>
+    <button class="btn btn-secondary" type="submit">Add</button>
+    <div class="invalid-feedback d-block" data-media-library-message hidden></div>
+  </form>
+
+  <p class="text-body-secondary" th:if="${items.isEmpty()}" data-media-library-empty>There is no media here yet.</p>
+  <div class="row row-cols-2 row-cols-md-4 g-3 mb-3" data-media-library-results>
+    <th:block th:each="item : ${items}">
+      <div th:replace="~{media/library-item :: div}" th:with="checked=false"></div>
+    </th:block>
+  </div>
+
+  <button class="btn btn-primary" type="button" data-media-library-insert>Insert selected</button>
+</div>

@@ -25,7 +25,8 @@ public record Renderable(
         CacheMetadata cache,
         Attachments attachments,
         Optional<LazyBuilder> lazyBuilder,
-        String slot) {
+        String slot,
+        List<String> cacheKeys) {
 
     public static final String CORE_TEMPLATE = "render/elements";
 
@@ -39,6 +40,7 @@ public record Renderable(
         data = Map.copyOf(data);
         attributes = Map.copyOf(attributes);
         children = List.copyOf(children);
+        cacheKeys = List.copyOf(cacheKeys);
     }
 
     /** A renderable drawn by a fragment of the core elements template. */
@@ -48,34 +50,42 @@ public record Renderable(
 
     public static Renderable of(String template, String type) {
         return new Renderable(template, type, Map.of(), Map.of(), List.of(),
-                CacheMetadata.EMPTY, Attachments.NONE, Optional.empty(), NO_SLOT);
+                CacheMetadata.EMPTY, Attachments.NONE, Optional.empty(), NO_SLOT, List.of());
     }
 
     /** A placeholder filled in after the shell around it has rendered. */
     public static Renderable lazy(LazyBuilder builder) {
         return new Renderable("", "", Map.of(), Map.of(), List.of(),
-                CacheMetadata.EMPTY, Attachments.NONE, Optional.of(builder), NO_SLOT);
+                CacheMetadata.EMPTY, Attachments.NONE, Optional.of(builder), NO_SLOT, List.of());
+    }
+
+    /**
+     * A placeholder the named {@link PlaceholderBuilder} fills with the
+     * arguments, built again for each request a kept page is used for.
+     */
+    public static Renderable placeholder(String builderId, Map<String, String> arguments) {
+        return lazy(new Placeholder(builderId, arguments));
     }
 
     public Renderable with(String key, Object value) {
         Map<String, Object> combined = new LinkedHashMap<>(data);
         combined.put(key, value);
         return new Renderable(template, type, combined, attributes, children,
-                cache, attachments, lazyBuilder, slot);
+                cache, attachments, lazyBuilder, slot, cacheKeys);
     }
 
     public Renderable attribute(String name, String value) {
         Map<String, String> combined = new LinkedHashMap<>(attributes);
         combined.put(name, value);
         return new Renderable(template, type, data, combined, children,
-                cache, attachments, lazyBuilder, slot);
+                cache, attachments, lazyBuilder, slot, cacheKeys);
     }
 
     public Renderable child(Renderable nested) {
         List<Renderable> combined = new ArrayList<>(children);
         combined.add(nested);
         return new Renderable(template, type, data, attributes, combined,
-                cache, attachments, lazyBuilder, slot);
+                cache, attachments, lazyBuilder, slot, cacheKeys);
     }
 
     /**
@@ -84,7 +94,17 @@ public record Renderable(
      */
     public Renderable inSlot(String name) {
         return new Renderable(template, type, data, attributes, children,
-                cache, attachments, lazyBuilder, name);
+                cache, attachments, lazyBuilder, name, cacheKeys);
+    }
+
+    /**
+     * Keeps this node's markup in the render cache under the keys, varied by
+     * the cache contexts it and everything inside it carry, until one of their
+     * tags is invalidated.
+     */
+    public Renderable cacheKeys(String... keys) {
+        return new Renderable(template, type, data, attributes, children, cache, attachments, lazyBuilder, slot,
+                List.of(keys));
     }
 
     /** Adds everything the given metadata carries to this node's own. */
@@ -118,11 +138,11 @@ public record Renderable(
 
     private Renderable withCache(CacheMetadata updated) {
         return new Renderable(template, type, data, attributes, children,
-                updated, attachments, lazyBuilder, slot);
+                updated, attachments, lazyBuilder, slot, cacheKeys);
     }
 
     private Renderable withAttachments(Attachments updated) {
         return new Renderable(template, type, data, attributes, children,
-                cache, updated, lazyBuilder, slot);
+                cache, updated, lazyBuilder, slot, cacheKeys);
     }
 }

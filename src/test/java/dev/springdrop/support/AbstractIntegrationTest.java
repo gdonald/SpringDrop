@@ -1,5 +1,9 @@
 package dev.springdrop.support;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -25,8 +29,22 @@ public abstract class AbstractIntegrationTest {
     // Many cached @SpringBootTest contexts share this one container; keep each
     // context's connection pool small so their total stays under Postgres'
     // connection limit.
+    /** Where tests keep files, so a test run never writes into the checkout. */
+    public static final Path FILES = temporaryDirectory();
+
     @DynamicPropertySource
     static void datasourcePool(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.hikari.maximum-pool-size", () -> 2);
+        registry.add("springdrop.files.public-path", () -> FILES.resolve("public").toString());
+        registry.add("springdrop.files.private-path", () -> FILES.resolve("private").toString());
+        registry.add("springdrop.search.lucene-path", () -> FILES.resolve("search-index").toString());
+    }
+
+    private static Path temporaryDirectory() {
+        try {
+            return Files.createTempDirectory("springdrop-files");
+        } catch (IOException failure) {
+            throw new UncheckedIOException(failure);
+        }
     }
 }

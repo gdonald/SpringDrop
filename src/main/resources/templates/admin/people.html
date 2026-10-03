@@ -12,7 +12,7 @@
   <h1 class="h3" th:text="${title}">People</h1>
   <p class="text-body-secondary" th:text="${description}"></p>
 
-  <form method="post" th:action="${action}">
+  <form method="post" th:action="${action}" th:if="${!formMarkup.isEmpty()}">
     <div th:utext="${formMarkup}"></div>
   </form>
 

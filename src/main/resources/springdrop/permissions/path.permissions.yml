@@ -1,0 +1,8 @@
+administer url aliases:
+  title: Administer URL alias patterns
+  description: Choose the patterns content types' URL aliases are made from.
+  restricted: true
+administer redirects:
+  title: Administer redirects
+  description: Send paths of the site to other paths or addresses.
+  restricted: true

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title}">Taxonomy</title>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+</head>
+<body>
+<main class="container py-5">
+  <h1 class="h3" th:text="${title}">Taxonomy</h1>
+  <p class="text-body-secondary" th:text="${description}"></p>
+
+  <p><a class="btn btn-primary" th:href="${addPath}">Add vocabulary</a></p>
+
+  <p class="text-body-secondary" th:if="${vocabularies.isEmpty()}">There are no vocabularies yet.</p>
+
+  <div class="table-responsive" th:if="${!vocabularies.isEmpty()}">
+    <table class="table align-middle">
+      <thead>
+      <tr>
+        <th scope="col">Vocabulary</th>
+        <th scope="col">Description</th>
+        <th scope="col">Actions</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:each="vocabulary : ${vocabularies}" th:attr="data-vocabulary=${vocabulary.id}">
+        <td th:text="${vocabulary.label}">Tags</td>
+        <td class="text-body-secondary" th:text="${vocabulary.description}">Words that describe content.</td>
+        <td>
+          <a class="btn btn-secondary btn-sm" th:href="${managePath} + ${vocabulary.id} + '/overview'">List terms</a>
+          <a class="btn btn-secondary btn-sm" th:href="${managePath} + ${vocabulary.id}">Edit</a>
+          <a class="btn btn-secondary btn-sm" th:href="${fieldsPath} + ${vocabulary.id} + '/fields'">Manage fields</a>
+          <a class="btn btn-danger btn-sm" th:href="${managePath} + ${vocabulary.id} + '/delete'">Delete</a>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+</body>
+</html>

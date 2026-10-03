@@ -48,6 +48,12 @@ class ConstraintTest {
         void acceptsAValueThatIsNotText() {
             assertThat(validate(0)).isEmpty();
         }
+
+        @Test
+        void rejectsAFieldHoldingNoValues() {
+            assertThat(validate(List.of())).contains("This value is required.");
+            assertThat(validate(List.of("Hello"))).isEmpty();
+        }
     }
 
     @Nested

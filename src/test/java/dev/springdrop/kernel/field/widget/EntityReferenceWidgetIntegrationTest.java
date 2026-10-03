@@ -35,6 +35,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
@@ -196,6 +197,7 @@ class EntityReferenceWidgetIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @WithMockUser(authorities = "edit topics")
     void aFreeTaggingFieldCreatesTheTargetItWasGivenTheNameOf() {
         WidgetContext context = attach(Map.of(EntityReferenceAutocompleteWidget.AUTO_CREATE, true));
 
@@ -207,6 +209,7 @@ class EntityReferenceWidgetIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @WithMockUser(authorities = "edit topics")
     void aCreatedTargetIsGivenTheBundleTheFieldNames() {
         WidgetContext context = attach(Map.of(
                 EntityReferenceAutocompleteWidget.AUTO_CREATE, true,
@@ -215,6 +218,16 @@ class EntityReferenceWidgetIntegrationTest extends AbstractIntegrationTest {
         List<Object> values = widgets.extract(context, Map.of("topic", "Beekeeping"));
 
         assertThat(entities.load("topic", values.getFirst())).isPresent();
+    }
+
+    @Test
+    @WithMockUser
+    void aFreeTaggingFieldCreatesNothingForSomeoneWhoMayNotCreateTheTarget() {
+        WidgetContext context = attach(Map.of(EntityReferenceAutocompleteWidget.AUTO_CREATE, true));
+
+        List<Object> values = widgets.extract(context, Map.of("topic", "Beekeeping"));
+
+        assertThat(values).containsExactly("Beekeeping");
     }
 
     @Test

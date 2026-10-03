@@ -9,4 +9,7 @@ public interface FieldWidgetPaths {
     String ADD_MORE = "/field/add-more";
 
     String AUTOCOMPLETE = "/field/autocomplete";
+
+    /** Where an editor sends an image to insert into formatted text. */
+    String EDITOR_UPLOAD = "/editor/upload";
 }

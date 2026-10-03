@@ -1,0 +1,29 @@
+access content:
+  title: View published content
+  description: Read the nodes the site has published.
+administer content types:
+  title: Administer content types
+  description: Add content types, and change what each is called and how its nodes start out.
+  restricted: true
+bypass node access:
+  title: Bypass content access control
+  description: View, edit, and delete every node, published or not, whoever wrote it.
+  restricted: true
+view own unpublished content:
+  title: View own unpublished content
+  description: Read the nodes you wrote while they are unpublished.
+view all revisions:
+  title: View all revisions
+  description: Read the revisions of every content type's nodes you may read.
+revert all revisions:
+  title: Revert all revisions
+  description: Put any node you may edit back to an earlier revision.
+delete all revisions:
+  title: Delete all revisions
+  description: Delete earlier revisions of any node you may delete.
+view any unpublished content:
+  title: View any unpublished content
+  description: Read every node while it is unpublished, whoever wrote it.
+view latest version:
+  title: View the latest version
+  description: Read the newest revision of a node you may edit when it is ahead of the one the site shows.

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title}">Content types</title>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+</head>
+<body>
+<main class="container py-5">
+  <h1 class="h3" th:text="${title}">Content types</h1>
+  <p class="text-body-secondary" th:text="${description}"></p>
+
+  <p><a class="btn btn-primary" th:href="${addPath}">Add content type</a></p>
+
+  <p class="text-body-secondary" th:if="${types.isEmpty()}">There are no content types yet.</p>
+
+  <div class="table-responsive" th:if="${!types.isEmpty()}">
+    <table class="table align-middle">
+      <thead>
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col">Description</th>
+        <th scope="col">Machine name</th>
+        <th scope="col">Actions</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:each="type : ${types}">
+        <td th:text="${type.label}">Article</td>
+        <td class="text-body-secondary" th:text="${type.description}">News and announcements.</td>
+        <td><code th:text="${type.id}">article</code></td>
+        <td>
+          <a class="btn btn-secondary btn-sm" th:href="${managePath} + ${type.id}">Edit</a>
+          <a class="btn btn-secondary btn-sm" th:href="${fieldsPath} + ${type.id} + '/fields'">Manage fields</a>
+          <a class="btn btn-secondary btn-sm" th:href="${fieldsPath} + ${type.id} + '/form-display'">Manage form display</a>
+          <a class="btn btn-secondary btn-sm" th:href="${fieldsPath} + ${type.id} + '/display'">Manage display</a>
+          <a class="btn btn-danger btn-sm" th:href="${managePath} + ${type.id} + '/delete'">Delete</a>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+</body>
+</html>

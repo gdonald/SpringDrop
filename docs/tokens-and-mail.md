@@ -37,7 +37,11 @@ provider lists the tokens it offers, and `/admin/help/tokens` shows them all.
 4. The message is delivered by the `MailBackend`.
 
 Mail is sent from the site mail address in `system.site`, with the reply-to address
-from `system.mail` when one is set.
+the request names, or else the one from `system.mail` when one is set.
+
+`MailRequest.literal(to, subject, body, replyTo)` sends a plain text mail as written,
+skipping steps 1 and 2. Text someone typed into a form travels this way, so a bracketed
+word in it is never read as a token.
 
 `CollectingMailBackend` keeps messages in memory so development and tests can inspect
 them. `SmtpMailBackend` sends over SMTP through Spring's `JavaMailSender` and is the

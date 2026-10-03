@@ -54,6 +54,8 @@ they never share a name with the placement's own fields.
 | `system_powered_by_block` | Powered by SpringDrop | a line naming the platform |
 | `custom_html` | Custom HTML | markup written into the placement |
 | `block_content` | Custom block | a custom block from the library |
+| `field_block:<type>:<bundle>:<field>` | the field's label | one field of the entity the page is about, in layouts only |
+| `user_account_block` | Account | "Signed in as" the account's name with a Log out button, or a Log in link, built for each request through the `account_greeting` placeholder |
 
 The menu block is derived: `MenuBlockDeriver` makes one per menu, and
 `system_menu_block:main` is the primary menu. Saving or deleting a menu drops the cached
@@ -148,7 +150,7 @@ Each block is drawn through the themed `block` template, with suggestions from m
 specific to least: `block--<placement id>`, `block--<plugin>--<derivative>`,
 `block--<plugin>`, and `block`. The block carries its placement's tag,
 `config:block.block.<id>`, and its plugin's cacheability, and every page with blocks
-carries `config:block_list`.
+carries `config:block_list`, which saving or deleting any placement invalidates.
 
 When a main content block is placed and shows, the page's content is drawn in its region
 and nowhere else. When none is placed, the layout draws the content where it always has.

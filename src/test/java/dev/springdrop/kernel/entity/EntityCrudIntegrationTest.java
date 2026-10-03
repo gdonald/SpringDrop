@@ -139,6 +139,132 @@ class EntityCrudIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void anEarlierRevisionHoldsTheTitleItHadThen() {
+        EntityData first = entities.save(story(16L, "Before", Map.of("body", "Old")));
+        entities.save(story(16L, "After", Map.of("body", "New")));
+
+        assertThat(entities.load("article", 16L, EntityData.DEFAULT_LANGCODE, first.revisionId()))
+                .hasValueSatisfying(loaded -> assertThat(loaded.label()).isEqualTo("Before"));
+    }
+
+    @Test
+    void aRevisionTheEntityNeverHadReadsTheCurrentTitle() {
+        entities.save(story(17L, "Current", Map.of("body", "Now")));
+
+        assertThat(entities.load("article", 17L, EntityData.DEFAULT_LANGCODE, 999_999L))
+                .hasValueSatisfying(loaded -> assertThat(loaded.label()).isEqualTo("Current"));
+    }
+
+    @Test
+    void savingWithoutANewRevisionWritesOverTheCurrentOne() {
+        EntityData first = entities.save(story(18L, "Before", Map.of("body", "Old")));
+
+        EntityData second = entities.save(story(18L, "After", Map.of("body", "New")), false);
+
+        assertThat(second.revisionId()).isEqualTo(first.revisionId());
+        assertThat(entities.revisions("article", 18L)).extracting(EntityRevision::label).containsExactly("After");
+        assertThat(entities.load("article", 18L, EntityData.DEFAULT_LANGCODE, first.revisionId()))
+                .hasValueSatisfying(loaded -> assertThat(loaded.fields()).containsEntry("body", "New"));
+    }
+
+    @Test
+    void aNewEntitySavedWithoutANewRevisionStillGetsItsFirst() {
+        EntityData saved = entities.save(story(19L, "First", Map.of("body", "Text")), false);
+
+        assertThat(saved.revisionId()).isNotNull();
+        assertThat(entities.revisions("article", 19L)).hasSize(1);
+    }
+
+    @Test
+    void theRevisionsOfAnEntityAreListedNewestFirst() {
+        EntityData first = entities.save(story(20L, "One", Map.of("body", "1")));
+        EntityData second = entities.save(story(20L, "Two", Map.of("body", "2")));
+
+        assertThat(entities.revisions("article", 20L)).extracting(EntityRevision::revisionId)
+                .containsExactly(second.revisionId(), first.revisionId());
+    }
+
+    @Test
+    void anEarlierRevisionIsDeletedWithItsFieldValues() {
+        EntityData first = entities.save(story(21L, "One", Map.of("body", "1")));
+        entities.save(story(21L, "Two", Map.of("body", "2")));
+
+        entities.deleteRevision("article", 21L, first.revisionId());
+
+        assertThat(entities.revisions("article", 21L)).extracting(EntityRevision::label).containsExactly("Two");
+        assertThat(entities.load("article", 21L, EntityData.DEFAULT_LANGCODE, first.revisionId()))
+                .hasValueSatisfying(loaded -> assertThat(loaded.fields()).doesNotContainKey("body"));
+    }
+
+    @Test
+    void theCurrentRevisionCannotBeDeleted() {
+        EntityData only = entities.save(story(22L, "Only", Map.of("body", "1")));
+
+        assertThatThrownBy(() -> entities.deleteRevision("article", 22L, only.revisionId()))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(entities.revisions("article", 22L)).hasSize(1);
+    }
+
+    @Test
+    void anUnbundledTypesRevisionIsDeletedToo() {
+        try {
+            EntityData first = entities.save(new EntityData("log", 23L, null, null, "One",
+                    EntityData.DEFAULT_LANGCODE, null, Map.of()));
+            entities.save(new EntityData("log", 23L, null, null, "Two", EntityData.DEFAULT_LANGCODE, null, Map.of()));
+
+            entities.deleteRevision("log", 23L, first.revisionId());
+
+            assertThat(entities.revisions("log", 23L)).extracting(EntityRevision::label).containsExactly("Two");
+        } finally {
+            entities.delete("log", 23L);
+        }
+    }
+
+    @Test
+    void aForwardRevisionIsWrittenBesideTheOthersWithoutChangingTheCurrentOne() {
+        EntityData current = entities.save(story(24L, "Live", Map.of("body", "Published text")));
+
+        EntityData forward = entities.saveForwardRevision(
+                story(24L, "Draft", Map.of("body", "Draft text", "tags", List.of("news", "hours"))));
+
+        assertThat(entities.load("article", 24L)).hasValueSatisfying(loaded -> {
+            assertThat(loaded.label()).isEqualTo("Live");
+            assertThat(loaded.revisionId()).isEqualTo(current.revisionId());
+            assertThat(loaded.fields()).containsEntry("body", "Published text");
+        });
+        assertThat(entities.latestRevisionId("article", 24L)).contains(forward.revisionId());
+        assertThat(entities.load("article", 24L, EntityData.DEFAULT_LANGCODE, forward.revisionId()))
+                .hasValueSatisfying(loaded -> assertThat(loaded.fields()).containsEntry("body", "Draft text")
+                        .containsEntry("tags", List.of("news", "hours")));
+    }
+
+    @Test
+    void aForwardRevisionLeavingAFieldOutHoldsNoValueForIt() {
+        entities.save(story(26L, "Live", Map.of("body", "Published text", "tags", List.of("news"))));
+
+        EntityData forward = entities.saveForwardRevision(story(26L, "Draft", Map.of("body", "Draft text")));
+
+        assertThat(entities.load("article", 26L, EntityData.DEFAULT_LANGCODE, forward.revisionId()))
+                .hasValueSatisfying(loaded -> assertThat(loaded.fields()).doesNotContainKey("tags"));
+    }
+
+    @Test
+    void aForwardRevisionNeedsAStoredEntityOfARevisionableType() {
+        assertThatThrownBy(() -> entities.saveForwardRevision(story(25L, "Nowhere", Map.of())))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> entities.saveForwardRevision(story(25L, "Nowhere", Map.of()).withId(null)))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> entities.saveForwardRevision(
+                        EntityData.of("memo", 25L, null, "Not revisionable", Map.of())))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void anEntityWithNoRevisionsHasNoLatestOne() {
+        assertThat(entities.latestRevisionId("article", 999_999L)).isEmpty();
+    }
+
+    @Test
     void eachLanguageHoldsItsOwnFieldValues() {
         entities.save(story(5L, "English", Map.of("body", "Hello")));
         EntityData saved = entities.save(story(5L, "Deutsch", Map.of("body", "Hallo")).withLangcode("de"));

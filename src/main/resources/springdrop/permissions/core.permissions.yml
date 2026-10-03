@@ -26,3 +26,10 @@ administer blocks:
   title: Administer blocks
   description: Place blocks in the regions of each theme, and write the custom blocks in the library.
   restricted: true
+configure layout overrides:
+  title: Configure layout overrides
+  description: Give a piece of content you may edit a layout of its own, where its view mode allows one.
+administer workflows:
+  title: Administer workflows
+  description: Add workflows, and decide the states content moves through and the transitions between them.
+  restricted: true

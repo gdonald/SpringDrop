@@ -55,13 +55,14 @@ public class MailManager {
         MailSettings settings = configStore.read(
                 MailSettings.CONFIG_NAME, MailSettings.class, MailSettings.DEFAULTS);
 
-        String subject = render(request.subject(), request, false);
-        String body = formatter.render(render(request.body(), request, formatter.requiresSanitizedTokens()));
+        String subject = request.literal() ? request.subject() : render(request.subject(), request, false);
+        String body = formatter.render(request.literal() ? request.body()
+                : render(request.body(), request, formatter.requiresSanitizedTokens()));
 
         backend.deliver(new MailMessage(
                 request.to(),
                 site.mail(),
-                settings.replyTo(),
+                (request.replyTo() == null) ? settings.replyTo() : request.replyTo(),
                 subject,
                 body,
                 formatter.contentType()));

@@ -76,13 +76,18 @@ administer fields:
 ```
 
 `PermissionRegistry` gathers them, along with any a module registers as a
-`PermissionProvider` bean, and the roles admin marks the restricted ones.
+`PermissionProvider` bean, and the roles admin marks the restricted ones. Providers are
+asked on every lookup, so a provider that builds permissions from stored configuration,
+such as the five each content type adds, offers them as soon as that configuration is
+saved. The declaration files ship with the code and are read once.
 
 A role is a config entity holding a set of permissions. Two roles always exist:
 anonymous, held by everyone who has not signed in, and authenticated, held by everyone
 who has. A role marked as the administrator role carries every permission the site
 knows about, including ones added later, so nobody has to go back and tick a new box.
 Signing in expands the account's roles into the permissions the access layer checks.
+A visitor who has not signed in carries the anonymous role's permissions, read on every
+request, so granting `access content` to anonymous opens published content to everyone.
 
 `/admin/people/permissions` is the matrix: a row per permission, a column per role, and
 a checkbox where they meet. Ticking a box and saving gates the matching route at once;
@@ -121,4 +126,13 @@ owner base field, so any content type recording an owner is covered.
 the count fading as its window passes. Sign-ins are counted per account and per address:
 past the threshold an account is refused before its password is looked at, and signing
 in successfully forgets the failures before it. Password reset requests are counted too,
-so the form cannot be used to bury someone in mail.
+so the form cannot be used to bury someone in mail. Contact messages are counted per
+account, or per address for someone not signed in, five an hour, which someone holding
+`administer contact forms` is not held to.
+
+## Personal contact preference
+
+An account's `contact` base field says whether others may send it messages through its
+personal contact form. It starts on, and an account that never said accepts messages.
+`/user/contact-settings` lets someone signed in turn their own form off and on, and the
+people admin's edit form sets it for any account.

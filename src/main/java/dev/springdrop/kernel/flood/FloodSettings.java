@@ -16,6 +16,9 @@ public interface FloodSettings {
 
     String PASSWORD_RESET = "user.password_reset";
 
+    /** Messages sent through contact forms, counted per account, or per address for someone not signed in. */
+    String CONTACT = "contact";
+
     int USER_THRESHOLD = 5;
 
     Duration USER_WINDOW = Duration.ofHours(6);
@@ -27,4 +30,8 @@ public interface FloodSettings {
     int RESET_THRESHOLD = 5;
 
     Duration RESET_WINDOW = Duration.ofHours(1);
+
+    int CONTACT_THRESHOLD = 5;
+
+    Duration CONTACT_WINDOW = Duration.ofHours(1);
 }

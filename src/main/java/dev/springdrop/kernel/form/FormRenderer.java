@@ -14,6 +14,12 @@ import org.springframework.web.util.HtmlUtils;
 @Component
 public class FormRenderer {
 
+    /**
+     * What a ticked checkbox submits. It matches what the states script reads a
+     * ticked checkbox as, so a condition on a checkbox holds the same on both sides.
+     */
+    public static final String CHECKED_VALUE = "true";
+
     private static final String CONTROL_CLASS = "form-control";
 
     private static final String CHECK_INPUT_CLASS = "form-check-input";
@@ -174,7 +180,8 @@ public class FormRenderer {
 
     private static String checkbox(FormElement element, Map<String, String> errors) {
         return "<div class=\"form-check\">"
-                + "<input type=\"checkbox\"" + classAttribute(checkClass(element, errors))
+                + "<input type=\"checkbox\" value=\"" + CHECKED_VALUE + "\""
+                + classAttribute(checkClass(element, errors))
                 + identity(element)
                 + (Boolean.TRUE.equals(element.value()) ? " checked" : "")
                 + requiredAttribute(element) + attributes(element) + ">"

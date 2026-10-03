@@ -1,5 +1,7 @@
 package dev.springdrop.kernel.field.widget.types;
 
+import dev.springdrop.kernel.entity.EntityAccessHandler;
+import dev.springdrop.kernel.entity.EntityAccessManager;
 import dev.springdrop.kernel.entity.EntityCrudService;
 import dev.springdrop.kernel.entity.EntityData;
 import dev.springdrop.kernel.field.widget.FieldWidget;
@@ -18,7 +20,8 @@ import java.util.regex.Pattern;
  * A text input that suggests entities to refer to as the person types, and holds
  * the one they pick as {@code Label (id)}. A field whose instance turns on
  * {@code auto_create} accepts a name that matches nothing and creates the target
- * as the reference is read, which is how tagging works.
+ * as the reference is read, which is how tagging works, provided the person may
+ * create it.
  */
 @SpringDropPlugin(id = EntityReferenceAutocompleteWidget.ID, type = FieldWidget.class)
 public class EntityReferenceAutocompleteWidget implements FieldWidget {
@@ -34,9 +37,11 @@ public class EntityReferenceAutocompleteWidget implements FieldWidget {
     private static final Pattern LABELLED_ID = Pattern.compile(".*\\((\\d+)\\)\\s*$");
 
     private final EntityCrudService entities;
+    private final EntityAccessManager entityAccess;
 
-    public EntityReferenceAutocompleteWidget(EntityCrudService entities) {
+    public EntityReferenceAutocompleteWidget(EntityCrudService entities, EntityAccessManager entityAccess) {
         this.entities = entities;
+        this.entityAccess = entityAccess;
     }
 
     @Override
@@ -46,7 +51,12 @@ public class EntityReferenceAutocompleteWidget implements FieldWidget {
 
     @Override
     public FormElement element(WidgetContext context, int delta, Object value) {
-        return Widgets.control(ElementType.TEXTFIELD, context, delta, label(context, value))
+        return withSuggestions(context, Widgets.control(ElementType.TEXTFIELD, context, delta, label(context, value)));
+    }
+
+    /** The input with the suggestion list the server fills as the person types. */
+    public static FormElement withSuggestions(WidgetContext context, FormElement input) {
+        return input
                 .attribute("autocomplete", "off")
                 .attribute("list", context.fieldName() + "-suggestions")
                 .attribute("hx-get", FieldWidgetPaths.AUTOCOMPLETE)
@@ -62,16 +72,31 @@ public class EntityReferenceAutocompleteWidget implements FieldWidget {
             return null;
         }
 
-        String text = entered.toString().trim();
+        return resolve(context, entered.toString().trim());
+    }
+
+    /**
+     * The target a piece of entered text refers to: the id it names, or for a
+     * free-tagging field a target created with it as its label. Text that names
+     * no id and creates nothing is kept as entered, which the field's reference
+     * check then refuses.
+     */
+    public Object resolve(WidgetContext context, String text) {
         return referencedId(text).orElseGet(() -> created(context, text));
     }
 
-    /** The reference as the person sees it: the target's label with its id. */
-    private String label(WidgetContext context, Object value) {
+    /**
+     * The reference as the person sees it: the target's label with its id. Text
+     * that names no id, kept from a refused submission, is shown as entered.
+     */
+    public String label(WidgetContext context, Object value) {
         if (value == null) {
             return "";
         }
-        return entities.load(targetType(context), value)
+        if (!String.valueOf(value).matches("\\d{1,18}")) {
+            return value.toString();
+        }
+        return entities.load(targetType(context), Long.valueOf(String.valueOf(value)))
                 .map(target -> target.label() + " (" + value + ")")
                 .orElse(value.toString());
     }
@@ -86,14 +111,23 @@ public class EntityReferenceAutocompleteWidget implements FieldWidget {
                 : Optional.empty();
     }
 
-    /** Creates the target a free-tagging field was given the name of. */
+    /**
+     * Creates the target a free-tagging field was given the name of, when the
+     * person may create one of that bundle, or of the type for an unbundled one.
+     */
     private Object created(WidgetContext context, String label) {
         if (!Boolean.TRUE.equals(context.instance().settings().get(AUTO_CREATE))) {
             return label;
         }
         Object bundle = context.instance().settings().get(AUTO_CREATE_BUNDLE);
-        EntityData target = new EntityData(targetType(context), null, null,
-                (bundle == null) ? null : bundle.toString(), label, EntityData.DEFAULT_LANGCODE, null, Map.of());
+        String createdBundle = (bundle == null) ? null : bundle.toString();
+        String targetType = targetType(context);
+        if (!entityAccess.may(targetType, (createdBundle == null) ? targetType : createdBundle,
+                EntityAccessHandler.CREATE)) {
+            return label;
+        }
+        EntityData target = new EntityData(targetType, null, null, createdBundle, label,
+                EntityData.DEFAULT_LANGCODE, null, Map.of());
         return entities.save(target).id();
     }
 

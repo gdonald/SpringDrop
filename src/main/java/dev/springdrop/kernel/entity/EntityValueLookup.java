@@ -21,10 +21,16 @@ public class EntityValueLookup implements ValueLookup {
         return false;
     }
 
+    /**
+     * Whether the target exists. A content entity is numbered, so a reference
+     * to one that is not a whole number points at nothing.
+     */
     @Override
     public boolean referenceExists(String target, Object id) {
         return entityTypeManager.find(target)
-                .map(type -> entityTypeManager.storageFor(type.id()).load(type, id).isPresent())
+                .filter(type -> type.kind() != EntityKind.CONTENT || String.valueOf(id).matches("\\d{1,18}"))
+                .map(type -> entityTypeManager.storageFor(type.id()).load(type,
+                        (type.kind() == EntityKind.CONTENT) ? Long.valueOf(String.valueOf(id)) : id).isPresent())
                 .orElse(false);
     }
 }

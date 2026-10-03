@@ -1,0 +1,10 @@
+access site-wide contact form:
+  title: Use the site-wide contact form
+  description: Send messages through the site's contact forms.
+access user contact forms:
+  title: Use users' personal contact forms
+  description: Send messages to people through their personal contact forms.
+administer contact forms:
+  title: Administer contact forms and contact form settings
+  description: Add contact forms, decide where their messages go, and send without the hourly limit.
+  restricted: true

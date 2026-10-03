@@ -188,7 +188,7 @@ class ViewDisplayIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void everyReferenceFormatterAnswersToItsOwnName() {
-        assertThat(new EntityReferenceLabelFormatter(entities, entityTypeManager).id())
+        assertThat(new EntityReferenceLabelFormatter(entities, entityTypeManager, null).id())
                 .isEqualTo(EntityReferenceLabelFormatter.ID);
         assertThat(new EntityReferenceIdFormatter().id()).isEqualTo(EntityReferenceIdFormatter.ID);
         assertThat(new EntityReferenceViewFormatter(entities, displays).id())

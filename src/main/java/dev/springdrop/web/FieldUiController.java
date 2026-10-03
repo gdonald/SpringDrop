@@ -5,12 +5,15 @@ import dev.springdrop.kernel.field.FieldInstanceConfig;
 import dev.springdrop.kernel.field.FieldStorageConfig;
 import dev.springdrop.kernel.field.FieldType;
 import dev.springdrop.kernel.form.ElementType;
+import dev.springdrop.kernel.form.FormBuilder;
 import dev.springdrop.kernel.form.FormElement;
 import dev.springdrop.kernel.form.FormRenderer;
+import dev.springdrop.kernel.form.FormState;
 import dev.springdrop.kernel.form.SelectOption;
 import dev.springdrop.kernel.form.ValidationRule;
 import dev.springdrop.kernel.plugin.PluginRegistry;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Controller;
@@ -51,12 +54,14 @@ public class FieldUiController {
     private final FieldConfigManager fields;
     private final FormRenderer renderer;
     private final PluginRegistry pluginRegistry;
+    private final FormBuilder forms;
 
     public FieldUiController(
-            FieldConfigManager fields, FormRenderer renderer, PluginRegistry pluginRegistry) {
+            FieldConfigManager fields, FormRenderer renderer, PluginRegistry pluginRegistry, FormBuilder forms) {
         this.fields = fields;
         this.renderer = renderer;
         this.pluginRegistry = pluginRegistry;
+        this.forms = forms;
     }
 
     public static String fieldsPath(String entityTypeId, String bundle) {
@@ -117,17 +122,33 @@ public class FieldUiController {
         return "admin/field-ui";
     }
 
+    /**
+     * Saves the field's settings once the form's rules pass, keeping the
+     * instance settings the form does not edit, such as the widget it uses.
+     */
     @PostMapping(PATH_PREFIX + "/{entityType}/{bundle}/fields/{field}")
     public String save(
             @PathVariable String entityType,
             @PathVariable String bundle,
             @PathVariable String field,
-            @RequestParam Map<String, String> submitted) {
+            @RequestParam Map<String, String> submitted,
+            Model model) {
 
         FieldStorageConfig storage = fields.findStorage(entityType, field).orElseThrow();
+        FieldInstanceConfig existing = fields.findInstance(entityType, bundle, field).orElseThrow();
+        FormState state = forms.validate(editForm(storage, existing), new LinkedHashMap<>(submitted));
+        if (state.hasErrors()) {
+            model.addAttribute("title", "Edit " + existing.label());
+            model.addAttribute("description", "A " + storage.type() + " field.");
+            model.addAttribute("action", fieldsPath(entityType, bundle) + "/" + field);
+            model.addAttribute("formMarkup", renderer.render(editForm(storage, existing), state.errors()));
+            return "admin/field-ui";
+        }
+        Map<String, Object> settings = new LinkedHashMap<>(existing.settings());
+        settings.putAll(fields.fieldType(storage.type()).instanceSettingsValues(submitted));
         fields.createStorage(new FieldStorageConfig(
                 field, entityType, storage.type(), cardinality(submitted), storage.settings()));
-        fields.createInstance(instance(entityType, bundle, field, submitted));
+        fields.createInstance(instance(entityType, bundle, field, submitted).withSettings(settings));
         return "redirect:" + fieldsPath(entityType, bundle);
     }
 
@@ -223,16 +244,23 @@ public class FieldUiController {
                         .child(FormElement.of(ElementType.SUBMIT, "save").label("Save field")));
     }
 
+    /** The field's label, values, help, and default, then whatever settings its type adds. */
     private FormElement editForm(FieldStorageConfig storage, FieldInstanceConfig instance) {
-        return FormElement.of(ElementType.CONTAINER, "edit-field")
+        FormElement form = FormElement.of(ElementType.CONTAINER, "edit-field")
                 .child(FormElement.of(ElementType.TEXTFIELD, LABEL)
                         .label("Label").markRequired().value(instance.label()))
                 .child(cardinalityElement(storage.cardinality()))
                 .child(requiredElement(instance.required()))
                 .child(descriptionElement(instance.description()))
-                .child(defaultValueElement(instance.defaultValue()))
-                .child(FormElement.of(ElementType.ACTIONS, "actions")
-                        .child(FormElement.of(ElementType.SUBMIT, "save").label("Save settings")));
+                .child(defaultValueElement(instance.defaultValue()));
+        List<FormElement> typeSettings = fields.fieldType(storage.type()).instanceSettingsForm(instance.settings());
+        if (!typeSettings.isEmpty()) {
+            FormElement fieldset = FormElement.of(ElementType.FIELDSET, "type-settings").label("Field settings");
+            typeSettings.forEach(fieldset::child);
+            form.child(fieldset);
+        }
+        return form.child(FormElement.of(ElementType.ACTIONS, "actions")
+                .child(FormElement.of(ElementType.SUBMIT, "save").label("Save settings")));
     }
 
     private static FormElement cardinalityElement(int value) {

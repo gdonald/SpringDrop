@@ -1,0 +1,10 @@
+administer views:
+  title: Administer views
+  description: Add, change, and delete views, the site's listings.
+  restricted: true
+access content overview:
+  title: Access the content overview
+  description: List all content in the content admin overview.
+access files overview:
+  title: Access the files overview
+  description: List the site's managed files.

@@ -73,6 +73,12 @@ class FormStatesIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void aControlThatWasNotSubmittedReadsAsEmpty() {
+        assertThat(new ElementState(ElementState.REQUIRED, "method", "").holds(null)).isTrue();
+        assertThat(new ElementState(ElementState.REQUIRED, "method", "null").holds(null)).isFalse();
+    }
+
+    @Test
     void anAlwaysRequiredElementIsEnforcedWhicheverWayTheConditionsGo() {
         FormOutcome outcome = forms.handle(DELIVERY_FORM, Map.of("method", "", "address", ""));
 

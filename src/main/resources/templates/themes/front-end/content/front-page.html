@@ -1,5 +1,9 @@
-<div class="card" xmlns:th="http://www.thymeleaf.org">
-  <div class="card-body">
-    <p class="card-text" th:text="${welcome}">A Drupal-style content platform on Spring.</p>
+<div class="front-page" xmlns:th="http://www.thymeleaf.org">
+  <div class="card" th:if="${empty != false}">
+    <div class="card-body">
+      <p class="card-text" th:text="${welcome}">A Drupal-style content platform on Spring.</p>
+      <p class="card-text text-body-secondary mb-0">No front page content has been created yet.</p>
+    </div>
   </div>
+  <div class="front-page__content" th:if="${empty == false}" th:utext="${children}">Teasers</div>
 </div>

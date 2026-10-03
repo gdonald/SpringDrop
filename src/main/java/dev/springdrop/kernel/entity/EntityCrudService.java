@@ -61,6 +61,15 @@ public class EntityCrudService {
     }
 
     public EntityData save(EntityData entity) {
+        return save(entity, true);
+    }
+
+    /**
+     * Saves the entity. Of a revisionable type, an entity already stored either
+     * gets a new revision or has its current one written over, as asked, and a
+     * new entity always gets its first revision.
+     */
+    public EntityData save(EntityData entity, boolean newRevision) {
         EntityType type = entityTypeManager.require(entity.entityType());
         validate(type, entity);
 
@@ -70,12 +79,20 @@ public class EntityCrudService {
             Optional<Map<String, Object>> existing = storage.load(type, identified.id());
             boolean exists = existing.isPresent();
 
-            EntityData saved = withUuid(identified, resolveUuid(type, identified, existing));
+            EntityData resolved = withUuid(identified, resolveUuid(type, identified, existing));
+            EntityData saved = exists ? resolved : withDefaults(type, resolved);
             events.publishEvent(new EntityEvent(saved, type.id(), EntityEvent.Phase.PRESAVE));
 
-            Long revisionId = type.revisionable() ? nextRevisionId(type) : null;
+            Long currentRevision = type.revisionable()
+                    ? existing.map(row -> asLong(row.get(type.keys().revision()))).orElse(null)
+                    : null;
+            boolean overwrite = !newRevision && currentRevision != null;
+            Long revisionId = !type.revisionable() ? null : (overwrite ? currentRevision : nextRevisionId(type));
             storage.save(type, saved.id(), baseValues(type, saved, revisionId));
             if (type.revisionable()) {
+                if (overwrite) {
+                    deleteRevisionRow(type, revisionId);
+                }
                 writeRevision(type, saved, revisionId);
             }
             writeFields(type, saved, revisionId);
@@ -118,6 +135,97 @@ public class EntityCrudService {
         });
     }
 
+    /**
+     * Saves a new revision of a stored entity without making it the one the
+     * site shows: the revision is written beside the others, while the entity's
+     * own row and current field values stay as they were. A later default save
+     * makes a revision current again.
+     */
+    public EntityData saveForwardRevision(EntityData entity) {
+        EntityType type = entityTypeManager.require(entity.entityType());
+        if (!type.revisionable() || entity.id() == null) {
+            throw new IllegalArgumentException("Only a stored entity of a revisionable type has forward revisions");
+        }
+        validate(type, entity);
+
+        return transactionRunner.call(() -> {
+            Map<String, Object> existing = entityTypeManager.storageFor(type.id()).load(type, entity.id())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "No " + type.id() + " " + entity.id() + " to add a revision to"));
+            EntityData saved = withUuid(entity, (UUID) existing.get(type.keys().uuid()));
+            events.publishEvent(new EntityEvent(saved, type.id(), EntityEvent.Phase.PRESAVE));
+
+            Long revisionId = nextRevisionId(type);
+            writeRevision(type, saved, revisionId);
+            for (String field : fieldsOf(type, saved.bundle())) {
+                if (saved.fields().containsKey(field)) {
+                    fieldTableStorage.writeRevision(
+                            type, saved.id(), revisionId, saved.langcode(), field, saved.fields().get(field));
+                }
+            }
+
+            EntityData result = new EntityData(saved.entityType(), saved.id(), saved.uuid(), saved.bundle(),
+                    saved.label(), saved.langcode(), revisionId, saved.fields());
+            events.publishEvent(new EntityEvent(result, type.id(), EntityEvent.Phase.UPDATE));
+            return result;
+        });
+    }
+
+    /** The newest revision the entity has, which may be ahead of the one the site shows. */
+    public Optional<Long> latestRevisionId(String entityTypeId, Object id) {
+        EntityType type = entityTypeManager.require(entityTypeId);
+        return Optional.ofNullable(dsl.select(DSL.max(DSL.field(DSL.name(type.keys().revision()), Long.class)))
+                .from(DSL.table(DSL.name(type.revisionTable())))
+                .where(DSL.field(DSL.name(type.keys().id())).eq(id))
+                .fetchOne(0, Long.class));
+    }
+
+    /** Every revision the entity has, newest first, as each revision's row holds it. */
+    public List<EntityRevision> revisions(String entityTypeId, Object id) {
+        EntityType type = entityTypeManager.require(entityTypeId);
+        return dsl.select()
+                .from(DSL.table(DSL.name(type.revisionTable())))
+                .where(DSL.field(DSL.name(type.keys().id())).eq(id))
+                .orderBy(DSL.field(DSL.name(type.keys().revision())).desc())
+                .fetch()
+                .map(record -> {
+                    Map<String, Object> row = record.intoMap();
+                    Map<String, Object> values = new LinkedHashMap<>();
+                    for (BaseFieldDefinition baseField : type.baseFields()) {
+                        Object stored = row.get(baseField.name());
+                        if (stored != null) {
+                            values.put(baseField.name(), contentStorage.javaValue(type, baseField.name(), stored));
+                        }
+                    }
+                    return new EntityRevision(asLong(row.get(type.keys().revision())),
+                            (String) row.get(type.keys().label()), values);
+                });
+    }
+
+    /**
+     * Removes one revision and the field values it held. The revision the site
+     * shows cannot be removed, since the entity would have none to show.
+     */
+    public void deleteRevision(String entityTypeId, Object id, long revisionId) {
+        EntityType type = entityTypeManager.require(entityTypeId);
+        transactionRunner.run(() -> {
+            Map<String, Object> row = entityTypeManager.storageFor(type.id()).load(type, id).orElseThrow();
+            if (Long.valueOf(revisionId).equals(asLong(row.get(type.keys().revision())))) {
+                throw new IllegalArgumentException("The current revision of " + entityTypeId + " " + id
+                        + " cannot be deleted");
+            }
+            String bundle = (type.keys().bundle() == null) ? null : (String) row.get(type.keys().bundle());
+            fieldTableStorage.deleteRevision(type, id, revisionId, fieldsOf(type, bundle));
+            deleteRevisionRow(type, revisionId);
+        });
+    }
+
+    private void deleteRevisionRow(EntityType type, Long revisionId) {
+        dsl.deleteFrom(DSL.table(DSL.name(type.revisionTable())))
+                .where(DSL.field(DSL.name(type.keys().revision())).eq(revisionId))
+                .execute();
+    }
+
     private void validate(EntityType type, EntityData entity) {
         List<ConstraintSpec> specs = new ArrayList<>();
         for (EntityConstraintProvider provider : constraintProviders) {
@@ -141,8 +249,9 @@ public class EntityCrudService {
         Map<String, Object> values = new LinkedHashMap<>(earlierRevision
                 ? fieldTableStorage.readRevision(type, id, revisionId, langcode, fields)
                 : fieldTableStorage.read(type, id, langcode, fields));
+        Map<String, Object> revisionRow = earlierRevision ? revisionRow(type, id, revisionId).orElse(row) : row;
         for (BaseFieldDefinition baseField : type.baseFields()) {
-            Object stored = row.get(baseField.name());
+            Object stored = revisionRow.get(baseField.name());
             if (stored != null) {
                 values.put(baseField.name(), contentStorage.javaValue(type, baseField.name(), stored));
             }
@@ -153,10 +262,23 @@ public class EntityCrudService {
                 id,
                 (UUID) row.get(type.keys().uuid()),
                 bundle,
-                (String) row.get(type.keys().label()),
+                (String) revisionRow.get(type.keys().label()),
                 langcode,
                 readRevision,
                 values);
+    }
+
+    /**
+     * The row an earlier revision wrote, holding the title and base field values
+     * the entity had then. A revision the entity never had reads as the current one.
+     */
+    private Optional<Map<String, Object>> revisionRow(EntityType type, Object id, Long revisionId) {
+        return dsl.select()
+                .from(DSL.table(DSL.name(type.revisionTable())))
+                .where(DSL.field(DSL.name(type.keys().revision())).eq(revisionId)
+                        .and(DSL.field(DSL.name(type.keys().id())).eq(id)))
+                .fetchOptional()
+                .map(found -> found.intoMap());
     }
 
     private Map<String, Object> baseValues(EntityType type, EntityData entity, Long revisionId) {
@@ -235,6 +357,17 @@ public class EntityCrudService {
             return entity.uuid();
         }
         return existing.map(row -> (UUID) row.get(type.keys().uuid())).orElseGet(UUID::randomUUID);
+    }
+
+    /** The entity with each base field it leaves out given the field's default, where it has one. */
+    private static EntityData withDefaults(EntityType type, EntityData entity) {
+        Map<String, Object> fields = new LinkedHashMap<>(entity.fields());
+        for (BaseFieldDefinition baseField : type.baseFields()) {
+            if (baseField.defaultValue() != null) {
+                fields.putIfAbsent(baseField.name(), baseField.defaultValue());
+            }
+        }
+        return entity.withFields(fields);
     }
 
     private static EntityData withUuid(EntityData entity, UUID uuid) {

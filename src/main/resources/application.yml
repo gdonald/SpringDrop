@@ -1,6 +1,9 @@
 spring:
   application:
     name: springdrop
+  config:
+    # The build names the fingerprinted script bundle here.
+    import: optional:classpath:springdrop/assets.properties
   threads:
     virtual:
       enabled: true
@@ -10,6 +13,11 @@ spring:
       ddl-auto: none
   flyway:
     locations: classpath:db/migration/core
+  servlet:
+    multipart:
+      # The largest upload the site takes. A file or image field can set a lower limit.
+      max-file-size: 32MB
+      max-request-size: 32MB
 springdrop:
   theme:
     default: front-end

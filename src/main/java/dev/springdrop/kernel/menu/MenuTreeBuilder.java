@@ -1,6 +1,7 @@
 package dev.springdrop.kernel.menu;
 
 import dev.springdrop.kernel.access.RouteAccessChecker;
+import dev.springdrop.kernel.cache.CacheTags;
 import dev.springdrop.kernel.render.CacheMetadata;
 import dev.springdrop.kernel.routing.RouteDefinition;
 import dev.springdrop.kernel.routing.RouteRegistry;
@@ -80,6 +81,8 @@ public class MenuTreeBuilder {
     public static CacheMetadata cacheability(String menuId) {
         return CacheMetadata.EMPTY
                 .withTag(MenuConfig.cacheTag(menuId))
+                .withTag(CacheTags.config(MenuConfig.configName(menuId)))
+                .withTag(CacheTags.list(MenuLinkContentEntityType.ID))
                 .withContext(RouteAccessChecker.USER_PERMISSIONS_CONTEXT);
     }
 

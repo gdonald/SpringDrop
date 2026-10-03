@@ -92,11 +92,12 @@ public class FormBuilder {
     /**
      * Every element the person can see and fill in must carry a value when it is
      * required. An element hidden by its conditions is not enforced, since the
-     * person was never shown it, and one whose conditions make it required is,
-     * even though the element itself is not marked required.
+     * person was never shown it, nor one its conditions disable, since a browser
+     * does not send a disabled control, and one whose conditions make it required
+     * is, even though the element itself is not marked required.
      */
     private static void validateRequired(FormElement element, FormState state) {
-        if (!element.access() || !isVisible(element, state)) {
+        if (!element.access() || !isVisible(element, state) || isDisabled(element, state)) {
             return;
         }
         Object value = state.values().get(element.name());
@@ -121,6 +122,10 @@ public class FormBuilder {
 
     private static boolean isVisible(FormElement element, FormState state) {
         return statesOf(element, ElementState.VISIBLE).allMatch(condition -> holds(condition, state));
+    }
+
+    private static boolean isDisabled(FormElement element, FormState state) {
+        return statesOf(element, ElementState.DISABLED).anyMatch(condition -> holds(condition, state));
     }
 
     private static boolean isRequired(FormElement element, FormState state) {

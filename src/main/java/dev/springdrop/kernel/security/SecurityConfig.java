@@ -1,6 +1,7 @@
 package dev.springdrop.kernel.security;
 
 import dev.springdrop.kernel.access.RouteAccessChecker;
+import dev.springdrop.kernel.role.RoleManager;
 import org.springframework.boot.actuate.info.InfoEndpoint;
 import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
 import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
@@ -11,6 +12,7 @@ import org.springframework.core.env.Profiles;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
 
 /**
@@ -38,6 +40,7 @@ public class SecurityConfig {
             HttpSecurity http,
             RouteAccessChecker accessChecker,
             RedirectSafety redirectSafety,
+            RoleManager roles,
             Environment environment) throws Exception {
 
         boolean administratorRequired = environment.acceptsProfiles(Profiles.of("prod"));
@@ -47,7 +50,7 @@ public class SecurityConfig {
                         .access(new ActuatorAuthorizationManager(administratorRequired))
                         .requestMatchers("/", "/error", LOGIN_PATH, LOGOUT_PATH,
                                 "/user/register", "/user/password", "/user/reset/**", "/user/verify/**",
-                                "/js/**", "/css/**", "/webjars/**", "/favicon.ico").permitAll()
+                                "/js/**", "/assets/**", "/css/**", "/webjars/**", "/favicon.ico").permitAll()
                         .anyRequest().access(new RouteAuthorizationManager(accessChecker)))
                 .formLogin(login -> login
                         .loginPage(LOGIN_PATH)
@@ -69,7 +72,8 @@ public class SecurityConfig {
                 // carry, are written by SecurityHeadersFilter instead.
                 .headers(headers -> headers.disable())
                 .exceptionHandling(handling -> handling
-                        .authenticationEntryPoint(new Http403ForbiddenEntryPoint()));
+                        .authenticationEntryPoint(new Http403ForbiddenEntryPoint()))
+                .addFilterAfter(new AnonymousPermissionsFilter(roles), AnonymousAuthenticationFilter.class);
         return http.build();
     }
 }

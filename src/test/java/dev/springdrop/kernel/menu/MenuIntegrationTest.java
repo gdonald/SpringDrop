@@ -3,10 +3,12 @@ package dev.springdrop.kernel.menu;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.springdrop.kernel.access.RouteAccessChecker;
+import dev.springdrop.kernel.cache.CacheTags;
+import dev.springdrop.kernel.menu.MenuLinkContentEntityType;
 import dev.springdrop.kernel.routing.RouteDefinition;
 import dev.springdrop.kernel.routing.RouteRegistrar;
-import dev.springdrop.kernel.user.AccountPrincipal;
 import dev.springdrop.kernel.theme.Link;
+import dev.springdrop.kernel.user.AccountPrincipal;
 import dev.springdrop.support.AbstractIntegrationTest;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -296,7 +298,8 @@ class MenuIntegrationTest extends AbstractIntegrationTest {
         MenuTree tree = trees.build(TRAVEL);
 
         assertThat(tree.menu()).isEqualTo(TRAVEL);
-        assertThat(tree.cacheability().tags()).containsExactly(MenuConfig.cacheTag(TRAVEL));
+        assertThat(tree.cacheability().tags()).containsExactly(MenuConfig.cacheTag(TRAVEL),
+                CacheTags.config(MenuConfig.configName(TRAVEL)), CacheTags.list(MenuLinkContentEntityType.ID));
         assertThat(tree.cacheability().contexts())
                 .containsExactly(RouteAccessChecker.USER_PERMISSIONS_CONTEXT);
     }

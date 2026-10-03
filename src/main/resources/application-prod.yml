@@ -13,3 +13,6 @@ logging:
   structured:
     format:
       console: ecs
+springdrop:
+  assets:
+    aggregate: true

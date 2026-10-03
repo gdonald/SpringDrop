@@ -1,0 +1,6 @@
+<article class="media mb-4" th:classappend="'media--' + ${viewMode}"
+         th:attr="data-media=${id},data-view-mode=${viewMode}" xmlns:th="http://www.thymeleaf.org">
+  <h2 class="h4" th:if="${!page}"><a th:href="${url}" th:text="${label}">Name</a></h2>
+  <p th:if="${!published}"><span class="badge text-bg-warning">Unpublished</span></p>
+  <div class="media__content" th:utext="${children}">Content</div>
+</article>

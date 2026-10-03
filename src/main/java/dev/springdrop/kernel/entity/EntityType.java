@@ -65,6 +65,11 @@ public record EntityType(
                 Map.of());
     }
 
+    /** The address of one entity of this type, from its canonical link, or the home page when it has none. */
+    public String canonicalPath(Object entityId) {
+        return links.getOrDefault("canonical", "/").replaceAll("\\{[^}]+}", String.valueOf(entityId));
+    }
+
     /** The table holding one row per revision, for a revisionable type. */
     public String revisionTable() {
         return baseTable + "_revision";

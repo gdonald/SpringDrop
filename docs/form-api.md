@@ -40,9 +40,11 @@ FormElement.of(ElementType.TEXTFIELD, "address")
 Each condition renders as `data-state-visible="method:post"` and the like.
 `form-states.js` reads those attributes and shows, requires, or disables the control as
 the other control changes. The server reads the same conditions from the same tree: a
-field hidden by its conditions is not enforced when required, and one whose conditions
-make it required is enforced even though the element itself is not marked required. A
-browser with no scripting reaches the same answer, since the server decides.
+field hidden or disabled by its conditions is not checked at all, since the person was
+not shown it or the browser does not send it, and one whose conditions make it required
+is enforced even though the element itself is not marked required. A control that was
+not sent counts as empty when a condition reads it, as it does in the script. A browser
+with no scripting reaches the same answer, since the server decides.
 
 ## Rendering
 
@@ -51,7 +53,9 @@ textareas, `form-select` selects, `form-check` radios, checkboxes and single
 checkboxes, and solid `btn-primary` submit buttons, never outline-style. Every field is
 wrapped with its label, its help text as `form-text`, and, when the submission carries
 an error for it, `is-invalid` on the control plus the message as `invalid-feedback`.
-Labels and values are escaped, so a value carrying markup cannot alter the form.
+Labels and values are escaped, so a value carrying markup cannot alter the form. A ticked
+checkbox submits `true` (`FormRenderer.CHECKED_VALUE`), the value the states script reads
+a ticked checkbox as, so a condition on a checkbox holds the same on both sides.
 
 ## Lifecycle
 
@@ -140,6 +144,17 @@ not send an unticked box. The options widgets offer an empty choice unless the f
 required, and `options_buttons` renders radios for a single value and checkboxes for
 several.
 
+Formatted text gets `text_textfield`, `text_textarea`, or `text_textarea_with_summary`:
+the text, a choice among the formats the person may use, starting from the stored one when
+they may use it, and for text with a summary a summary input unless the field's
+`display_summary` setting is off. The parts are grouped so an error about the value lands
+on the group, and are named `<element>:value`, `<element>:format`, and
+`<element>:summary`. The text input carries `data-editor-target`, `data-editor-formats`
+(the tags an editor offers for each offered format, as JSON keyed by format id),
+`data-editor-upload`, and the `data-editor-image-*` limits and messages for inserted
+images, and the format choice carries `data-editor-format-selector`, for the
+[editor](text-formats.md#editor) to follow.
+
 A date field gets a native date input when its storage holds dates, and a
 `datetime-local` input when it holds moments. What the person types is read in the
 site's timezone and stored as an instant, and a stored instant is shown back as the
@@ -157,8 +172,18 @@ A reference field gets an autocomplete input. It suggests targets from
 `/field/autocomplete` as the person types, filtered to what they are allowed to see,
 and holds the one they pick as `Label (id)`. A field whose instance turns on
 `auto_create` accepts a name that matches nothing and creates the target as the
-reference is read, which is how tagging works. Creating an entity with no id of its own
-allocates the next one from its storage.
+reference is read, which is how tagging works, provided the person may create an entity
+of the `auto_create_bundle` the instance names. A name that is not created is kept as
+entered, and the field's reference check refuses it. Creating an entity with no id of its
+own allocates the next one from its storage.
+
+The `entity_reference_autocomplete_tags` widget edits every value of a multi-value
+reference field in one input named after the field, as `Label (id)` entries separated by
+commas, with "Separate entries with commas." added to the field's description and no
+Add another item button. A name holding a comma or a double quote is written in double
+quotes, with each double quote in it doubled. A widget that edits all of a field's values
+in one control implements `MultipleValueWidget`, and `FieldWidgetManager` builds and
+reads it once rather than per delta.
 
 ## Form displays
 
@@ -181,12 +206,20 @@ added. Each form mode is laid out on its own.
 A formatter renders one value of a field for reading. It is a plugin registered with
 `@SpringDropPlugin(type = FieldFormatter.class)`, and `FieldFormatterManager` renders
 the field around it: the label, then the value, or a list of values in delta order when
-the field holds several. A field holding nothing renders nothing at all.
+the field holds several. A field holding nothing, or one whose formatter draws nothing for
+any of its values, renders nothing at all. `ViewDisplayManager.render(entity, mode)` tells
+each formatter which entity its field belongs to, as `FormatterContext.entity()`, which a
+formatter drawing something about the entity itself, such as its comments, reads.
 
 Core ships `string` and `basic_string` for text, `number_integer` and `number_decimal`
 with prefix, suffix, separator, and decimal-place settings, `boolean` with configurable
 labels for the two states, and `list_default`, which shows an option's label rather than
 its stored value. Stored values are escaped, so nothing saved can alter the page.
+
+`text_default` renders formatted text through its format. `text_trimmed` renders the
+start of it, cut to the `trim_length` setting at the last whole word that fits, 600
+characters by default, with every tag left open closed. `text_summary_or_trimmed` renders
+the summary through the text's format when there is one, and otherwise the trimmed text.
 
 `datetime_default`, `timestamp`, and `daterange_default` render moments in one of the
 site's named date formats, in the site's timezone or one the display names. With
@@ -194,6 +227,9 @@ site's named date formats, in the site's timezone or one the display names. With
 largest unit that still says something. `link` renders an anchor shown by its title or
 by where it goes, pointing an internal link at the path its route serves and marking an
 external one so the page it opens cannot reach back.
+
+`file_default`, `image`, and `responsive_image` draw file and image fields, as
+[Files](files.md) and [Image styles](image-styles.md) describe.
 
 `entity_reference_label` shows the target's label, linked to it through the type's
 canonical route unless the display says otherwise, `entity_reference_entity_id` shows
@@ -222,7 +258,9 @@ The field admin lives under `/admin/structure/{entity type}/{bundle}`, behind th
 `administer fields` permission:
 
 - `/fields` lists what the bundle has, each row with an Edit and a Delete button, and
-  offers the form that adds another. Adding runs in two steps, since the settings the
+  offers the form that adds another. Editing a field also shows the settings its type
+  offers, and saving keeps the instance settings the form does not edit, such as the
+  widget the field uses. Adding runs in two steps, since the settings the
   second step asks for depend on the type chosen in the first. Saving creates the field
   storage, the instance, and the field's tables. Deleting asks first, then removes the
   storage, every instance of it, and the tables.
@@ -230,7 +268,12 @@ The field admin lives under `/admin/structure/{entity type}/{bundle}`, behind th
   whether it is shown at all. A field taken off the form leaves the edit form; changing
   the weights reorders it.
 - `/display` does the same for reading, and adds whether each label is shown. Each view
-  mode is laid out on its own, so changing the teaser leaves the default alone.
+  mode is laid out on its own, so changing the teaser leaves the default alone. A
+  formatter that offers a settings form through `FieldFormatter.settingsForm(prefix,
+  settings)` gets a Formatter settings section in its field's row, its elements named
+  `<field>_settings_<setting>`, and saving stores what `settingsValues` reads from them.
+  A formatter without a settings form keeps the settings its slot already had, as long as
+  the field stays on the same formatter.
 
 Both display tabs read the handlers back from the plugin registry, so a widget or
 formatter a module adds is offered without core listing it.

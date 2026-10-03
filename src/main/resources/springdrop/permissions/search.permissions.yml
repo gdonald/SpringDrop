@@ -1,0 +1,10 @@
+search content:
+  title: Use search
+  description: Search the site's content.
+search users:
+  title: Search accounts
+  description: Find active accounts by name.
+administer search:
+  title: Administer search
+  description: Choose the search backend and build its index again.
+  restricted: true

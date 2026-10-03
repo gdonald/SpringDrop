@@ -8,6 +8,7 @@ import dev.springdrop.kernel.entity.EntityType;
 import dev.springdrop.kernel.entity.EntityTypeManager;
 import dev.springdrop.kernel.entity.query.Condition;
 import dev.springdrop.kernel.entity.query.EntityQueryExecutor;
+import dev.springdrop.kernel.schema.SchemaManager;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +17,8 @@ import org.springframework.stereotype.Component;
 /**
  * Closing an account, and deciding what happens to what it wrote. Content is
  * found by its owner base field, so any content type that records an owner is
- * covered without naming it here.
+ * covered without naming it here. A type whose tables are not installed holds
+ * no content, so it is passed over.
  */
 @Component
 public class AccountCancellationService {
@@ -25,16 +27,19 @@ public class AccountCancellationService {
     private final EntityCrudService entities;
     private final EntityTypeManager entityTypeManager;
     private final EntityQueryExecutor queries;
+    private final SchemaManager schemaManager;
 
     public AccountCancellationService(
             UserAccountService accounts,
             EntityCrudService entities,
             EntityTypeManager entityTypeManager,
-            EntityQueryExecutor queries) {
+            EntityQueryExecutor queries,
+            SchemaManager schemaManager) {
         this.accounts = accounts;
         this.entities = entities;
         this.entityTypeManager = entityTypeManager;
         this.queries = queries;
+        this.schemaManager = schemaManager;
     }
 
     public void cancel(long accountId, CancellationMethod method) {
@@ -55,7 +60,7 @@ public class AccountCancellationService {
     /** Every content entity of every type that records who owns it. */
     private void overOwnedContent(long accountId, OwnedContentAction action) {
         for (EntityType type : entityTypeManager.all()) {
-            if (!ownsContent(type)) {
+            if (!ownsContent(type) || !schemaManager.tableExists(type.baseTable())) {
                 continue;
             }
             for (Object id : queries.query(type.id())

@@ -7,9 +7,10 @@ import java.util.List;
  * A field defined in code rather than in configuration, stored as a column of
  * the entity's base and revision tables instead of in a table of its own. The
  * keys (id, uuid, langcode) are base fields the storage always creates; a type
- * declares the rest, such as whether it is published and who owns it.
+ * declares the rest, such as whether it is published and who owns it. A field
+ * with a default value is given it when an entity is first stored without one.
  */
-public record BaseFieldDefinition(String name, ColumnType type, boolean required) {
+public record BaseFieldDefinition(String name, ColumnType type, boolean required, Object defaultValue) {
 
     public static final String STATUS = "status";
 
@@ -20,11 +21,16 @@ public record BaseFieldDefinition(String name, ColumnType type, boolean required
     public static final String OWNER = "owner";
 
     public static BaseFieldDefinition required(String name, ColumnType type) {
-        return new BaseFieldDefinition(name, type, true);
+        return new BaseFieldDefinition(name, type, true, null);
     }
 
     public static BaseFieldDefinition optional(String name, ColumnType type) {
-        return new BaseFieldDefinition(name, type, false);
+        return new BaseFieldDefinition(name, type, false, null);
+    }
+
+    /** The same field, given this value when an entity is first stored without one. */
+    public BaseFieldDefinition withDefault(Object value) {
+        return new BaseFieldDefinition(name, type, required, value);
     }
 
     /**

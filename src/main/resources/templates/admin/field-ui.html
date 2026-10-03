@@ -12,6 +12,8 @@
   <h1 class="h3" th:text="${title}">Manage fields</h1>
   <p class="text-body-secondary" th:if="${description}" th:text="${description}"></p>
 
+  <p th:if="${layoutPath}"><a class="btn btn-secondary" th:href="${layoutPath}">Manage layout</a></p>
+
   <div th:if="${listing}" th:utext="${listing}"></div>
 
   <form th:if="${formMarkup}" method="post" th:action="${action}">
@@ -21,9 +23,9 @@
 <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js"
         integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
         crossorigin="anonymous"></script>
-<script type="module" th:attr="nonce=${cspNonce}">
-  import { initFormStates } from '/js/form-states.js';
-  import { initFormValidation } from '/js/form-validation.js';
+<script type="module" th:attr="nonce=${cspNonce}" th:inline="javascript">
+  import { initFormStates } from [[${@assets.url('/js/form-states.js')}]];
+  import { initFormValidation } from [[${@assets.url('/js/form-validation.js')}]];
   initFormStates();
   initFormValidation();
 </script>
