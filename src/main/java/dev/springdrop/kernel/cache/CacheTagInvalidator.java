@@ -54,6 +54,8 @@ public class CacheTagInvalidator {
 
     @EventListener
     void configChanged(ConfigChangedEvent event) {
-        invalidate(List.of(CacheTags.config(event.name())));
+        int lastDot = event.name().lastIndexOf('.');
+        invalidate(lastDot < 0 ? List.of(CacheTags.config(event.name()))
+                : List.of(CacheTags.config(event.name()), CacheTags.configList(event.name().substring(0, lastDot))));
     }
 }

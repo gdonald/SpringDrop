@@ -12,11 +12,13 @@ import dev.springdrop.kernel.block.plugins.MenuBlockDeriver;
 import dev.springdrop.kernel.block.plugins.PageTitleBlock;
 import dev.springdrop.kernel.block.plugins.PoweredByBlock;
 import dev.springdrop.kernel.block.plugins.SiteBrandingBlock;
+import dev.springdrop.kernel.cache.CacheContexts;
 import dev.springdrop.kernel.cache.CacheTags;
 import dev.springdrop.kernel.config.ConfigStore;
 import dev.springdrop.kernel.form.ElementType;
 import dev.springdrop.kernel.form.FormElement;
 import dev.springdrop.kernel.form.FormRenderer;
+import dev.springdrop.kernel.locale.Translator;
 import dev.springdrop.kernel.menu.MenuConfig;
 import dev.springdrop.kernel.menu.MenuLink;
 import dev.springdrop.kernel.menu.MenuLinkContentEntityType;
@@ -209,9 +211,10 @@ class BlockPluginIntegrationTest extends AbstractIntegrationTest {
         CacheMetadata cacheability = blocks.plugin(MenuBlockDeriver.PRIMARY).cacheability(Map.of());
 
         assertThat(cacheability.tags()).containsExactly(MenuConfig.cacheTag(MenuConfig.MAIN),
-                CacheTags.config(MenuConfig.configName(MenuConfig.MAIN)), CacheTags.list(MenuLinkContentEntityType.ID));
+                CacheTags.config(MenuConfig.configName(MenuConfig.MAIN)), CacheTags.list(MenuLinkContentEntityType.ID),
+                Translator.CACHE_TAG);
         assertThat(cacheability.contexts())
-                .containsExactly(RouteAccessChecker.USER_PERMISSIONS_CONTEXT, "url.path");
+                .containsExactly(RouteAccessChecker.USER_PERMISSIONS_CONTEXT, CacheContexts.LANGUAGES, "url.path");
     }
 
     @Test

@@ -3,7 +3,9 @@ package dev.springdrop.kernel.menu;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.springdrop.kernel.access.RouteAccessChecker;
+import dev.springdrop.kernel.cache.CacheContexts;
 import dev.springdrop.kernel.cache.CacheTags;
+import dev.springdrop.kernel.locale.Translator;
 import dev.springdrop.kernel.menu.MenuLinkContentEntityType;
 import dev.springdrop.kernel.routing.RouteDefinition;
 import dev.springdrop.kernel.routing.RouteRegistrar;
@@ -299,9 +301,10 @@ class MenuIntegrationTest extends AbstractIntegrationTest {
 
         assertThat(tree.menu()).isEqualTo(TRAVEL);
         assertThat(tree.cacheability().tags()).containsExactly(MenuConfig.cacheTag(TRAVEL),
-                CacheTags.config(MenuConfig.configName(TRAVEL)), CacheTags.list(MenuLinkContentEntityType.ID));
+                CacheTags.config(MenuConfig.configName(TRAVEL)), CacheTags.list(MenuLinkContentEntityType.ID),
+                Translator.CACHE_TAG);
         assertThat(tree.cacheability().contexts())
-                .containsExactly(RouteAccessChecker.USER_PERMISSIONS_CONTEXT);
+                .containsExactly(RouteAccessChecker.USER_PERMISSIONS_CONTEXT, CacheContexts.LANGUAGES);
     }
 
     @Test

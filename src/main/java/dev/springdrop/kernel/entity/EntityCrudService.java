@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -36,6 +37,7 @@ public class EntityCrudService {
     private final ApplicationEventPublisher events;
     private final List<EntityConstraintProvider> constraintProviders;
     private final DSLContext dsl;
+    private final TranslatableFields translatableFields;
 
     public EntityCrudService(
             EntityTypeManager entityTypeManager,
@@ -47,7 +49,8 @@ public class EntityCrudService {
             TransactionRunner transactionRunner,
             ApplicationEventPublisher events,
             List<EntityConstraintProvider> constraintProviders,
-            DSLContext dsl) {
+            DSLContext dsl,
+            TranslatableFields translatableFields) {
         this.entityTypeManager = entityTypeManager;
         this.bundleFieldMap = bundleFieldMap;
         this.fieldTableStorage = fieldTableStorage;
@@ -58,6 +61,7 @@ public class EntityCrudService {
         this.events = events;
         this.constraintProviders = constraintProviders;
         this.dsl = dsl;
+        this.translatableFields = translatableFields;
     }
 
     public EntityData save(EntityData entity) {
@@ -68,6 +72,11 @@ public class EntityCrudService {
      * Saves the entity. Of a revisionable type, an entity already stored either
      * gets a new revision or has its current one written over, as asked, and a
      * new entity always gets its first revision.
+     *
+     * <p>A stored entity of a translatable type saved in a language other than
+     * its own is saved as a translation: its label and translated fields are
+     * kept for that language, while its base fields and shared fields change
+     * for every language, and its own label stays as it was.
      */
     public EntityData save(EntityData entity, boolean newRevision) {
         EntityType type = entityTypeManager.require(entity.entityType());
@@ -78,6 +87,9 @@ public class EntityCrudService {
             EntityData identified = (entity.id() == null) ? entity.withId(storage.nextId(type)) : entity;
             Optional<Map<String, Object>> existing = storage.load(type, identified.id());
             boolean exists = existing.isPresent();
+            String original = (type.translatable() && exists)
+                    ? (String) existing.get().get(type.keys().langcode()) : identified.langcode();
+            boolean translation = !identified.langcode().equals(original);
 
             EntityData resolved = withUuid(identified, resolveUuid(type, identified, existing));
             EntityData saved = exists ? resolved : withDefaults(type, resolved);
@@ -88,14 +100,20 @@ public class EntityCrudService {
                     : null;
             boolean overwrite = !newRevision && currentRevision != null;
             Long revisionId = !type.revisionable() ? null : (overwrite ? currentRevision : nextRevisionId(type));
-            storage.save(type, saved.id(), baseValues(type, saved, revisionId));
+            EntityData own = translation ? new EntityData(saved.entityType(), saved.id(), saved.uuid(),
+                    saved.bundle(), (String) existing.get().get(type.keys().label()), original, null,
+                    saved.fields()) : saved;
+            storage.save(type, saved.id(), baseValues(type, own, revisionId));
             if (type.revisionable()) {
                 if (overwrite) {
                     deleteRevisionRow(type, revisionId);
                 }
-                writeRevision(type, saved, revisionId);
+                writeRevision(type, own, revisionId);
             }
-            writeFields(type, saved, revisionId);
+            writeFields(type, saved, revisionId, original);
+            if (translation) {
+                contentStorage.saveTranslation(type, saved.id(), saved.langcode(), saved.label());
+            }
 
             EntityData result = new EntityData(saved.entityType(), saved.id(), saved.uuid(), saved.bundle(),
                     saved.label(), saved.langcode(), revisionId, saved.fields());
@@ -111,7 +129,8 @@ public class EntityCrudService {
 
     /**
      * The entity in one language and revision. A null revision id reads the
-     * revision the base row points at, the one the site shows.
+     * revision the base row points at, the one the site shows. An entity of a
+     * translatable type not translated into the language is read in its own.
      */
     public Optional<EntityData> load(String entityTypeId, Object id, String langcode, Long revisionId) {
         EntityType type = entityTypeManager.require(entityTypeId);
@@ -119,6 +138,42 @@ public class EntityCrudService {
             EntityData entity = assemble(type, id, row, langcode, revisionId);
             events.publishEvent(new EntityEvent(entity, type.id(), EntityEvent.Phase.LOAD));
             return entity;
+        });
+    }
+
+    /** The languages the entity is in: its own first, then those it is translated into, by code. */
+    public List<String> translations(String entityTypeId, Object id) {
+        EntityType type = entityTypeManager.require(entityTypeId);
+        return entityTypeManager.storageFor(type.id()).load(type, id).map(row -> {
+            List<String> langcodes = new ArrayList<>();
+            langcodes.add(type.translatable() ? (String) row.get(type.keys().langcode())
+                    : EntityData.DEFAULT_LANGCODE);
+            if (type.translatable()) {
+                langcodes.addAll(contentStorage.translationLangcodes(type, id));
+            }
+            return List.copyOf(langcodes);
+        }).orElse(List.of());
+    }
+
+    /**
+     * Removes one translation: its label and the values of its translated
+     * fields. An entity's own language is not a translation and cannot be
+     * removed this way.
+     */
+    public void deleteTranslation(String entityTypeId, Object id, String langcode) {
+        EntityType type = entityTypeManager.require(entityTypeId);
+        transactionRunner.run(() -> {
+            Map<String, Object> row = entityTypeManager.storageFor(type.id()).load(type, id).orElseThrow();
+            if (!type.translatable() || langcode.equals(row.get(type.keys().langcode()))) {
+                throw new IllegalArgumentException(entityTypeId + " " + id + " has no translation " + langcode
+                        + " to delete");
+            }
+            EntityData entity = assemble(type, id, row, (String) row.get(type.keys().langcode()), null);
+            List<String> translated = fieldsOf(type, entity.bundle()).stream()
+                    .filter(translatableFields.of(type.id())::contains).toList();
+            fieldTableStorage.deleteLanguage(type, id, langcode, translated);
+            contentStorage.deleteTranslation(type, id, langcode);
+            events.publishEvent(new EntityEvent(entity, type.id(), EntityEvent.Phase.UPDATE));
         });
     }
 
@@ -243,12 +298,22 @@ public class EntityCrudService {
         String bundle = (type.keys().bundle() == null) ? null : (String) row.get(type.keys().bundle());
         Long storedRevision = type.revisionable() ? asLong(row.get(type.keys().revision())) : null;
         Long readRevision = (revisionId != null) ? revisionId : storedRevision;
+        String original = type.translatable() ? (String) row.get(type.keys().langcode()) : langcode;
+        Optional<String> translationLabel = langcode.equals(original) ? Optional.empty()
+                : contentStorage.translationLabel(type, id, langcode);
+        String readLangcode = translationLabel.isPresent() ? langcode : original;
 
         List<String> fields = fieldsOf(type, bundle);
+        Set<String> translated = translatableFields.of(type.id());
+        List<String> ownFields = fields.stream().filter(translated::contains).toList();
+        List<String> sharedFields = fields.stream().filter(field -> !translated.contains(field)).toList();
         boolean earlierRevision = revisionId != null && !revisionId.equals(storedRevision);
         Map<String, Object> values = new LinkedHashMap<>(earlierRevision
-                ? fieldTableStorage.readRevision(type, id, revisionId, langcode, fields)
-                : fieldTableStorage.read(type, id, langcode, fields));
+                ? fieldTableStorage.readRevision(type, id, revisionId, original, sharedFields)
+                : fieldTableStorage.read(type, id, original, sharedFields));
+        values.putAll(earlierRevision
+                ? fieldTableStorage.readRevision(type, id, revisionId, readLangcode, ownFields)
+                : fieldTableStorage.read(type, id, readLangcode, ownFields));
         Map<String, Object> revisionRow = earlierRevision ? revisionRow(type, id, revisionId).orElse(row) : row;
         for (BaseFieldDefinition baseField : type.baseFields()) {
             Object stored = revisionRow.get(baseField.name());
@@ -262,8 +327,8 @@ public class EntityCrudService {
                 id,
                 (UUID) row.get(type.keys().uuid()),
                 bundle,
-                (String) revisionRow.get(type.keys().label()),
-                langcode,
+                translationLabel.orElse((String) revisionRow.get(type.keys().label())),
+                readLangcode,
                 readRevision,
                 values);
     }
@@ -323,11 +388,13 @@ public class EntityCrudService {
         dsl.insertInto(DSL.table(DSL.name(type.revisionTable()))).set(row).execute();
     }
 
-    private void writeFields(EntityType type, EntityData entity, Long revisionId) {
+    /** Writes each field's values, a translated field's in the entity's language and a shared one's in its own. */
+    private void writeFields(EntityType type, EntityData entity, Long revisionId, String original) {
+        Set<String> translated = translatableFields.of(type.id());
         for (String field : fieldsOf(type, entity.bundle())) {
             if (entity.fields().containsKey(field)) {
-                fieldTableStorage.write(
-                        type, entity.id(), revisionId, entity.langcode(), field, entity.fields().get(field));
+                fieldTableStorage.write(type, entity.id(), revisionId,
+                        translated.contains(field) ? entity.langcode() : original, field, entity.fields().get(field));
             }
         }
     }

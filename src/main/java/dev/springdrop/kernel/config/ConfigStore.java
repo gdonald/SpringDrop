@@ -6,13 +6,16 @@ import static org.jooq.impl.DSL.table;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.JSONB;
 import org.jooq.Table;
 import org.jooq.impl.SQLDataType;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -32,13 +35,14 @@ public class ConfigStore {
     private final DSLContext dsl;
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher events;
-    private final List<ConfigOverrideProvider> overrideProviders;
+    private final ObjectProvider<ConfigOverrideProvider> overrideProviders;
 
+    // The providers are looked up as they are needed, since a provider may read config itself.
     public ConfigStore(
             DSLContext dsl,
             ObjectMapper objectMapper,
             ApplicationEventPublisher events,
-            List<ConfigOverrideProvider> overrideProviders) {
+            ObjectProvider<ConfigOverrideProvider> overrideProviders) {
         this.dsl = dsl;
         this.objectMapper = objectMapper;
         this.events = events;
@@ -50,9 +54,7 @@ public class ConfigStore {
         T base = (stored == null) ? defaults : objectMapper.readValue(stored.data(), type);
 
         Map<String, Object> overrides = new LinkedHashMap<>();
-        for (ConfigOverrideProvider provider : overrideProviders) {
-            provider.overrides(name).ifPresent(overrides::putAll);
-        }
+        overrideProviders.orderedStream().forEach(provider -> provider.overrides(name).ifPresent(overrides::putAll));
         if (overrides.isEmpty()) {
             return base;
         }
@@ -60,6 +62,12 @@ public class ConfigStore {
         ObjectNode merged = objectMapper.valueToTree(base);
         merged.setAll(objectMapper.<ObjectNode>valueToTree(overrides));
         return objectMapper.convertValue(merged, type);
+    }
+
+    /** The object as it is stored, without overrides, or empty when nothing is stored under the name. */
+    public Optional<JsonNode> readStored(String name) {
+        return Optional.ofNullable(dsl.select(DATA).from(CONFIG).where(NAME.eq(name)).fetchOne(DATA))
+                .map(stored -> objectMapper.readTree(stored.data()));
     }
 
     /** The names of every stored object under a prefix, as {@code prefix.<rest>}. */

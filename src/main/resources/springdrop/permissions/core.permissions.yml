@@ -33,3 +33,26 @@ administer workflows:
   title: Administer workflows
   description: Add workflows, and decide the states content moves through and the transitions between them.
   restricted: true
+access site reports:
+  title: View site reports
+  description: Read the activity log and the status report.
+  restricted: true
+administer languages:
+  title: Administer languages
+  description: Add the languages the site is shown in, and decide how a request's language is chosen.
+  restricted: true
+translate interface:
+  title: Translate the interface
+  description: Translate the words the site's pages are built from, and import and export translation files.
+  restricted: true
+translate content:
+  title: Translate content
+  description: Add, edit, and delete the translations of content you may edit.
+translate configuration:
+  title: Translate configuration
+  description: Translate the names, help, and titles of fields, content types, views, menus, and other configuration.
+  restricted: true
+administer rest resources:
+  title: Administer REST resources
+  description: Choose which content is served over REST, by which methods, and in which formats.
+  restricted: true

@@ -12,6 +12,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
@@ -38,7 +40,12 @@ public class MenuLinkContentService {
         this.entityTypeManager = entityTypeManager;
     }
 
-    /** Creates the table these links are stored in, the step install runs. */
+    /**
+     * Creates the table these links are stored in. It runs as the application
+     * starts, since a node's form and its deletion read the links, and creating
+     * a table that exists leaves it as it is.
+     */
+    @EventListener(ApplicationReadyEvent.class)
     public void install() {
         entityTypeManager.installStorage(MenuLinkContentEntityType.ID);
     }
@@ -87,6 +94,19 @@ public class MenuLinkContentService {
 
     public void delete(long entityId) {
         entities.delete(MenuLinkContentEntityType.ID, entityId);
+    }
+
+    /** The stored links pointing at a path, oldest first. */
+    public List<MenuLink> linkingTo(String url) {
+        List<MenuLink> links = new ArrayList<>();
+        List<Object> ids = queries.query(MenuLinkContentEntityType.ID)
+                .condition(Condition.equal(MenuLinkContentEntityType.LINK_URL, url))
+                .sort(Sort.ascending("id"))
+                .ids();
+        for (Object id : ids) {
+            find(((Number) id).longValue()).ifPresent(links::add);
+        }
+        return links;
     }
 
     /** Every stored link in one menu, whether enabled or not. */

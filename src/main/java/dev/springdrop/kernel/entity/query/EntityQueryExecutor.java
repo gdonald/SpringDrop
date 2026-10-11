@@ -4,6 +4,7 @@ import dev.springdrop.kernel.entity.EntityKeys;
 import dev.springdrop.kernel.entity.EntityType;
 import dev.springdrop.kernel.entity.EntityTypeManager;
 import dev.springdrop.kernel.entity.FieldTableStorage;
+import dev.springdrop.kernel.entity.TranslatableFields;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -27,6 +28,11 @@ import tools.jackson.databind.ObjectMapper;
  * by entity and narrowed to the query's language and revision. A tagged query is
  * published as an {@link EntityQueryAlterEvent} first, so the access system can
  * add conditions before anything runs.
+ *
+ * <p>Of a translatable type, a query in a language finds the entities in that
+ * language, their own or a translation, and reads a translated field in that
+ * language and a shared one in the entity's own. A query in no language reads
+ * every field in the entity's own language.
  */
 @Component
 public class EntityQueryExecutor {
@@ -35,16 +41,19 @@ public class EntityQueryExecutor {
     private final DSLContext dsl;
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher events;
+    private final TranslatableFields translatableFields;
 
     public EntityQueryExecutor(
             EntityTypeManager entityTypeManager,
             DSLContext dsl,
             ObjectMapper objectMapper,
-            ApplicationEventPublisher events) {
+            ApplicationEventPublisher events,
+            TranslatableFields translatableFields) {
         this.entityTypeManager = entityTypeManager;
         this.dsl = dsl;
         this.objectMapper = objectMapper;
         this.events = events;
+        this.translatableFields = translatableFields;
     }
 
     public EntityQuery query(String entityTypeId) {
@@ -111,12 +120,17 @@ public class EntityQueryExecutor {
     }
 
     private void joinFieldTables(SelectJoinStep<?> select, EntityType type, EntityQuery query) {
+        Set<String> translated = translatableFields.of(type.id());
         for (String field : fieldProperties(type, query)) {
             String table = fieldTable(type, field, query);
             org.jooq.Condition on = DSL.field(DSL.name(table, FieldTableStorage.ENTITY_ID))
                     .eq(baseField(type, type.keys().id()));
-            if (query.langcode() != null) {
-                on = on.and(DSL.field(DSL.name(table, FieldTableStorage.LANGCODE)).eq(query.langcode()));
+            Field<Object> langcode = DSL.field(DSL.name(table, FieldTableStorage.LANGCODE));
+            if (type.translatable()) {
+                on = on.and(query.langcode() != null && translated.contains(field) ? langcode.eq(query.langcode())
+                        : langcode.eq(baseField(type, type.keys().langcode())));
+            } else if (query.langcode() != null) {
+                on = on.and(langcode.eq(query.langcode()));
             }
             if (query.revisionId() != null) {
                 on = on.and(DSL.field(DSL.name(table, FieldTableStorage.REVISION_ID)).eq(query.revisionId()));
@@ -152,6 +166,13 @@ public class EntityQueryExecutor {
 
     private org.jooq.Condition whereClause(EntityType type, EntityQuery query) {
         org.jooq.Condition clause = DSL.noCondition();
+        if (type.translatable() && query.langcode() != null) {
+            clause = baseField(type, type.keys().langcode()).eq(query.langcode()).or(DSL.exists(DSL.selectOne()
+                    .from(DSL.table(DSL.name(type.translationTable())))
+                    .where(DSL.field(DSL.name(type.translationTable(), type.keys().id()))
+                            .eq(baseField(type, type.keys().id())))
+                    .and(DSL.field(DSL.name(type.translationTable(), type.keys().langcode())).eq(query.langcode()))));
+        }
         for (Condition condition : query.conditions()) {
             clause = clause.and(toJooq(type, query, condition));
         }

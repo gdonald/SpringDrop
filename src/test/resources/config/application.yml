@@ -1,0 +1,5 @@
+# Loaded after the main application.yml, for tests only.
+springdrop:
+  cron:
+    # A scheduled run would start cron jobs in the middle of unrelated tests.
+    schedule: "-"

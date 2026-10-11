@@ -1,6 +1,10 @@
 package dev.springdrop.kernel.theme;
 
+import dev.springdrop.kernel.cache.CacheContexts;
 import dev.springdrop.kernel.cache.CacheTags;
+import dev.springdrop.kernel.language.LanguageConfig;
+import dev.springdrop.kernel.language.LanguageManager;
+import dev.springdrop.kernel.locale.Translator;
 import dev.springdrop.kernel.menu.MenuConfig;
 import dev.springdrop.kernel.menu.MenuTreeBuilder;
 import dev.springdrop.kernel.render.Attachments;
@@ -56,12 +60,15 @@ public class PageRenderer {
     private final ThemeRegistry registry;
     private final RenderService renderer;
     private final BigPipe bigPipe;
+    private final LanguageManager languages;
 
-    public PageRenderer(ThemeService themes, ThemeRegistry registry, RenderService renderer, BigPipe bigPipe) {
+    public PageRenderer(ThemeService themes, ThemeRegistry registry, RenderService renderer, BigPipe bigPipe,
+            LanguageManager languages) {
         this.themes = themes;
         this.registry = registry;
         this.renderer = renderer;
         this.bigPipe = bigPipe;
+        this.languages = languages;
     }
 
     public RenderedPage render(PageChrome chrome, Renderable content) {
@@ -76,6 +83,9 @@ public class PageRenderer {
         variables.put("messages", chrome.messages());
         variables.put("pager", chrome.pager().orElse(Pager.NONE));
         variables.put("partials", partialTemplates());
+        LanguageConfig language = languages.current();
+        variables.put("langcode", language.id());
+        variables.put("direction", language.direction());
 
         Renderable layout = themes.build(LAYOUT_DIRECTORY, TemplateSuggestions.of(LAYOUT), variables);
         for (Map.Entry<String, Renderable> region : chrome.regions().entrySet()) {
@@ -108,7 +118,9 @@ public class PageRenderer {
      */
     static CacheMetadata chromeCacheability(PageChrome chrome) {
         CacheMetadata cache = MenuTreeBuilder.cacheability(MenuConfig.MAIN)
-                .withTag(CacheTags.config(SiteInformation.CONFIG_NAME));
+                .withTag(CacheTags.config(SiteInformation.CONFIG_NAME))
+                .withContext(CacheContexts.LANGUAGES)
+                .withTag(Translator.CACHE_TAG);
         return chrome.messages().isEmpty() ? cache : cache.withMaxAge(Duration.ZERO);
     }
 

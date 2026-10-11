@@ -67,8 +67,9 @@ tasks.withType<JavaCompile>().configureEach {
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     // Spring keeps up to 32 test contexts cached for the whole run, each with its own
-    // connection pool and template cache, which outgrows Gradle's 512m default.
-    maxHeapSize = "1g"
+    // connection pool and template cache, which outgrows Gradle's 512m default and, with
+    // the contexts the suite now has, 1g.
+    maxHeapSize = "1536m"
 }
 
 tasks.jacocoTestReport {

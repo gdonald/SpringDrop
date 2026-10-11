@@ -172,5 +172,4 @@ temporary file that nothing uses once the file is older than
 `springdrop.files.temporary-max-age`, six hours by default, so an upload can sit in a
 form being filled in. A file marked temporary that something still uses is kept.
 
-`CronRunner.run()` runs every `CronJob` bean in id order. A module adds housekeeping by
-registering one.
+`docs/cron.md` describes cron and the ways it is started.

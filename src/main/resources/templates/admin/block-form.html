@@ -12,6 +12,11 @@
   <h1 class="h3" th:text="${title}">Block</h1>
   <p class="text-body-secondary" th:text="${description}"></p>
 
+  <section class="node-preview border rounded p-3 mb-4" th:if="${preview != null}">
+    <h2 class="h5">Preview</h2>
+    <div th:utext="${preview}"></div>
+  </section>
+
   <form method="post" th:action="${action}" data-form-states>
     <div th:utext="${formMarkup}"></div>
   </form>

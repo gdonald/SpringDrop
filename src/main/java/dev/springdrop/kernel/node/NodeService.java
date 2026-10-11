@@ -142,6 +142,11 @@ public class NodeService {
         return entities.load(NodeEntityType.ID, id);
     }
 
+    /** The node in a language, or in its own when it is not translated into that one. */
+    public Optional<EntityData> find(long id, String langcode) {
+        return entities.load(NodeEntityType.ID, id, langcode, null);
+    }
+
     /** Deletes the node and the aliases of its page. */
     public void delete(long id) {
         entities.delete(NodeEntityType.ID, id);
@@ -160,7 +165,8 @@ public class NodeService {
                 .with("value", displays.render(node, viewMode)));
 
         Map<String, Object> variables = new LinkedHashMap<>();
-        variables.put("id", node.id());
+        // A node being previewed before its first save has no id yet.
+        variables.put("id", node.id() == null ? "" : node.id());
         variables.put("label", node.label());
         variables.put("url", aliases.outbound(NodeEntityType.path(node.id())));
         variables.put("viewMode", viewMode);

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title}">Cron</title>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+</head>
+<body>
+<main class="container py-5">
+  <h1 class="h3" th:text="${title}">Cron</h1>
+  <p class="last-run" th:text="${lastRun}">Cron has not run.</p>
+
+  <form method="post" th:action="${runAction}" class="mb-4">
+    <button type="submit" class="btn btn-primary">Run cron</button>
+  </form>
+
+  <h2 class="h5">Running cron from outside the site</h2>
+  <p>An outside scheduler runs cron by requesting this address. Keep it secret.</p>
+  <p><code class="cron-url" th:text="${cronUrl}">https://example.com/cron/key</code></p>
+
+  <h2 class="h5">Jobs, in the order they run</h2>
+  <ul class="cron-jobs">
+    <li th:each="job : ${jobs}" th:text="${job}">file.temporary</li>
+  </ul>
+</main>
+</body>
+</html>

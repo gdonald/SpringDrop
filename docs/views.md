@@ -129,6 +129,7 @@ label, a settings form, and the settings a submission of the form gives.
 | `base_value` | Value | a base property as text, a boolean as `true_label` or `false_label` |
 | `entity_field` | Field | a configured field through the formatter `formatter` names, or the field type's default |
 | `entity_operations` | Operations | an Edit button where the reader may change the entity |
+| `bulk_form` | Bulk operations | a box to tick for applying an action to the ticked results, described in [Actions](actions.md) |
 | `entity_links` | Links | the `links` setting's buttons, each a `label`, a `path` with `{id}` for the entity's id, and an optional Bootstrap `style` |
 | `search_excerpt` | Search excerpt | the excerpt of the result's search document for the reader's keywords, described in [Search](search.md) |
 
@@ -209,7 +210,7 @@ the id as it is:
 
 | Id | Lists | Displays | Access |
 | --- | --- | --- | --- |
-| `content` | all content in a sortable table, latest change first, with exposed title, type, and status filters | page `/admin/content` | `access content overview` |
+| `content` | all content in a sortable table, latest change first, with exposed title, type, status, and author filters, and a bulk form | page `/admin/content` | `access content overview` |
 | `files` | managed files in a sortable table, newest first, with exposed name and status filters | page `/admin/content/files` | `access files overview` |
 | `frontpage` | published content promoted to the front page as teasers, sticky first, then newest | the front page, and feed `/rss.xml` | `access content` |
 | `taxonomy_term` | published content tagged with the term as teasers | a term's page | `access content` |

@@ -16,6 +16,14 @@ public final class CacheTags {
         return entityType + "_list";
     }
 
+    /**
+     * The config objects under a prefix, such as {@code config_list:language.entity}, invalidated when
+     * any object directly under it is saved or deleted.
+     */
+    public static String configList(String prefix) {
+        return "config_list:" + prefix;
+    }
+
     /** One config object, such as {@code config:system.site}, invalidated when it is saved or deleted. */
     public static String config(String name) {
         return "config:" + name;

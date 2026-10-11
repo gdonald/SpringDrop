@@ -145,6 +145,16 @@ public class FieldTableStorage {
         }
     }
 
+    /** Removes the values the named fields hold in one language of one entity, in every revision. */
+    public void deleteLanguage(EntityType type, Object id, String langcode, List<String> fields) {
+        for (String field : fields) {
+            deleteRows(tableName(type, field), currentCondition(id, langcode));
+            if (type.revisionable()) {
+                deleteRows(revisionTableName(type, field), currentCondition(id, langcode));
+            }
+        }
+    }
+
     /** Removes every value of every named field for one entity, in all languages and revisions. */
     public void deleteAll(EntityType type, Object id, List<String> fields) {
         for (String field : fields) {

@@ -165,11 +165,11 @@ class ViewsUiIntegrationTest extends AbstractIntegrationTest {
         Document overview = page("/admin/content", editor());
 
         assertThat(overview.title()).contains("Content");
-        assertThat(overview.select("#view-content-page_1 thead th").eachText()).containsExactly("Title",
+        assertThat(overview.select("#view-content-page_1 thead th").eachText()).containsExactly("Select", "Title",
                 "Content type", "Author", "Status", "Updated", "Operations");
-        assertThat(overview.select("#view-content-page_1 tbody tr td:first-child").eachText())
+        assertThat(overview.select("#view-content-page_1 tbody tr td:nth-child(2)").eachText())
                 .containsExactly("Opening hours");
-        assertThat(overview.select("#view-content-page_1 tbody tr td:nth-child(4)").eachText())
+        assertThat(overview.select("#view-content-page_1 tbody tr td:nth-child(5)").eachText())
                 .containsExactly("Published");
         assertThat(overview.select("#view-content-page_1 a.btn").eachText()).containsExactly("Edit");
         assertThat(overview.select("form.views-exposed-form input[name=title]")).hasSize(1);
@@ -185,7 +185,7 @@ class ViewsUiIntegrationTest extends AbstractIntegrationTest {
         article("Closing hours");
         nodes.save(first.withFields(new LinkedHashMap<>(first.fields())), 1L);
 
-        assertThat(page("/admin/content", editor()).select("#view-content-page_1 tbody tr td:first-child")
+        assertThat(page("/admin/content", editor()).select("#view-content-page_1 tbody tr td:nth-child(2)")
                 .eachText()).containsExactlyInAnyOrder("Opening hours", "Closing hours");
     }
 

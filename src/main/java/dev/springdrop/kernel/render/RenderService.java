@@ -9,10 +9,12 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.ITemplateEngine;
 import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.expression.ThymeleafEvaluationContext;
 
 /**
  * Turns a {@link Renderable} tree into markup. Each node is drawn by its
@@ -37,10 +39,13 @@ public class RenderService {
     private final ITemplateEngine templateEngine;
     private final RenderCache renderCache;
     private final Map<String, PlaceholderBuilder> placeholderBuilders;
+    private final ThymeleafEvaluationContext evaluationContext;
 
     public RenderService(ITemplateEngine templateEngine, RenderCache renderCache,
-            List<PlaceholderBuilder> placeholderBuilders) {
+            List<PlaceholderBuilder> placeholderBuilders, ApplicationContext applicationContext) {
         this.templateEngine = templateEngine;
+        // Lets a template reach beans as ${@name}, as templates drawn by Spring MVC can.
+        this.evaluationContext = new ThymeleafEvaluationContext(applicationContext, null);
         this.renderCache = renderCache;
         this.placeholderBuilders = placeholderBuilders.stream()
                 .collect(Collectors.toMap(PlaceholderBuilder::id, Function.identity()));
@@ -108,6 +113,8 @@ public class RenderService {
         }
 
         Context context = new Context(LocaleContextHolder.getLocale());
+        context.setVariable(ThymeleafEvaluationContext.THYMELEAF_EVALUATION_CONTEXT_CONTEXT_VARIABLE_NAME,
+                evaluationContext);
         context.setVariables(node.data());
         context.setVariable("attributes", node.attributes());
         context.setVariable("children", children.toString());

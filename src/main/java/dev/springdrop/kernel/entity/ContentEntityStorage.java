@@ -63,10 +63,19 @@ public class ContentEntityStorage implements EntityStorage {
         if (type.revisionable()) {
             schemaManager.createTable(type.revisionTable(), revisionColumns(type), keys.revision());
         }
+        if (type.translatable()) {
+            schemaManager.createTable(type.translationTable(), List.of(
+                    ColumnSpec.required(keys.id(), ColumnType.BIGINT),
+                    ColumnSpec.required(keys.langcode(), ColumnType.VARCHAR),
+                    ColumnSpec.optional(keys.label(), ColumnType.VARCHAR)), List.of(keys.id(), keys.langcode()));
+        }
     }
 
     @Override
     public void uninstall(EntityType type) {
+        if (type.translatable()) {
+            schemaManager.dropTable(type.translationTable());
+        }
         if (type.revisionable()) {
             schemaManager.dropTable(type.revisionTable());
         }
@@ -107,6 +116,11 @@ public class ContentEntityStorage implements EntityStorage {
 
     @Override
     public void delete(EntityType type, Object id) {
+        if (type.translatable()) {
+            dsl.deleteFrom(DSL.table(DSL.name(type.translationTable())))
+                    .where(DSL.field(DSL.name(type.keys().id())).eq(id))
+                    .execute();
+        }
         if (type.revisionable()) {
             dsl.deleteFrom(DSL.table(DSL.name(type.revisionTable())))
                     .where(DSL.field(DSL.name(type.keys().id())).eq(id))
@@ -114,6 +128,37 @@ public class ContentEntityStorage implements EntityStorage {
         }
         dsl.deleteFrom(DSL.table(DSL.name(type.baseTable())))
                 .where(idField(type).eq(id))
+                .execute();
+    }
+
+    /** The label of the entity's translation into the language, when it has one. */
+    public Optional<String> translationLabel(EntityType type, Object id, String langcode) {
+        return dsl.select(DSL.field(DSL.name(type.keys().label()), String.class))
+                .from(DSL.table(DSL.name(type.translationTable())))
+                .where(idField(type).eq(id)).and(DSL.field(DSL.name(type.keys().langcode())).eq(langcode))
+                .fetchOptional()
+                .map(record -> String.valueOf(record.value1()));
+    }
+
+    /** The languages the entity is translated into, apart from its own, by code. */
+    public List<String> translationLangcodes(EntityType type, Object id) {
+        Field<String> langcode = DSL.field(DSL.name(type.keys().langcode()), String.class);
+        return dsl.select(langcode).from(DSL.table(DSL.name(type.translationTable())))
+                .where(idField(type).eq(id)).orderBy(langcode).fetch(langcode);
+    }
+
+    public void saveTranslation(EntityType type, Object id, String langcode, String label) {
+        Field<Object> langcodeField = DSL.field(DSL.name(type.keys().langcode()));
+        Field<Object> labelField = DSL.field(DSL.name(type.keys().label()));
+        dsl.insertInto(DSL.table(DSL.name(type.translationTable())))
+                .set(idField(type), id).set(langcodeField, langcode).set(labelField, label)
+                .onConflict(idField(type), langcodeField).doUpdate().set(labelField, (Object) label)
+                .execute();
+    }
+
+    public void deleteTranslation(EntityType type, Object id, String langcode) {
+        dsl.deleteFrom(DSL.table(DSL.name(type.translationTable())))
+                .where(idField(type).eq(id)).and(DSL.field(DSL.name(type.keys().langcode())).eq(langcode))
                 .execute();
     }
 

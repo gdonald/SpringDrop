@@ -21,6 +21,10 @@ spring:
 springdrop:
   theme:
     default: front-end
+  cron:
+    # A Spring cron expression: second, minute, hour, day of month, month, day of week.
+    # "-" turns the schedule off.
+    schedule: "0 0 * * * *"
 management:
   endpoints:
     web:

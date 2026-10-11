@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title}">Recent log messages</title>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+</head>
+<body>
+<main class="container py-5">
+  <h1 class="h3" th:text="${title}">Recent log messages</h1>
+
+  <form method="get" th:action="${action}" class="row g-2 align-items-end mb-3 log-filters">
+    <div class="col-auto">
+      <label class="form-label" for="log-type">Type</label>
+      <select class="form-select" id="log-type" name="type">
+        <option value="">- Any -</option>
+        <option th:each="choice : ${types}" th:value="${choice.value}" th:text="${choice.label}"
+                th:selected="${choice.selected}">action</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label" for="log-severity">Severity</label>
+      <select class="form-select" id="log-severity" name="severity">
+        <option value="">- Any -</option>
+        <option th:each="choice : ${severities}" th:value="${choice.value}" th:text="${choice.label}"
+                th:selected="${choice.selected}">Error</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a class="btn btn-secondary" th:href="${action}">Reset</a>
+    </div>
+  </form>
+
+  <p><a class="btn btn-danger" th:href="${clearPath}">Clear log messages</a></p>
+
+  <div class="table-responsive" th:if="${!rows.isEmpty()}">
+    <table class="table align-middle log-events">
+      <thead>
+      <tr>
+        <th scope="col">Severity</th>
+        <th scope="col">Type</th>
+        <th scope="col">Date</th>
+        <th scope="col">Message</th>
+        <th scope="col">User</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:each="row : ${rows}" th:attr="data-event=${row.id}">
+        <td><span class="badge" th:classappend="${row.severityClass}" th:text="${row.severity}">Notice</span></td>
+        <td th:text="${row.type}">action</td>
+        <td th:text="${row.date}">05/04/2026 - 10:15</td>
+        <td><a th:href="@{/admin/reports/dblog/event/{id}(id=${row.id})}" th:text="${row.message}">
+          Publish content was applied</a></td>
+        <td th:text="${row.user}">editor</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+  <p th:if="${rows.isEmpty()}">No log messages available.</p>
+
+  <nav aria-label="Pagination" th:if="${!pager.pages.isEmpty()}">
+    <ul class="pagination">
+      <li class="page-item" th:classappend="${pager.previousUrl.isPresent() ? '' : 'disabled'}">
+        <a class="page-link" th:href="${pager.previousUrl.orElse('#')}">Previous</a></li>
+      <li class="page-item" th:each="link : ${pager.pages}" th:classappend="${link.current ? 'active' : ''}">
+        <a class="page-link" th:href="${link.url}" th:text="${link.number}">1</a></li>
+      <li class="page-item" th:classappend="${pager.nextUrl.isPresent() ? '' : 'disabled'}">
+        <a class="page-link" th:href="${pager.nextUrl.orElse('#')}">Next</a></li>
+    </ul>
+  </nav>
+</main>
+</body>
+</html>

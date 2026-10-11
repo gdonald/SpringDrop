@@ -56,13 +56,36 @@ Saving without a new revision writes over the current one.
 | --- | --- |
 | `/node/add` | lists the content types the person may create content of |
 | `/node/add/{type}` | the form for a new node of that type |
-| `/node/{id}` | the node on its own page, in the `full` view mode, with View, Edit, and Layout tabs |
+| `/node/{id}` | the node on its own page, in the `full` view mode, with View, Edit, Delete, and Layout tabs for someone who may use them |
 | `/node/{id}/edit` | the form for an existing node |
+| `/node/{id}/delete` | asks whether to delete the node, and deletes it on confirmation |
 
 The form holds the title, labeled the way the type says, and the fields the type's form
 display shows. A field the form shows and the submission leaves empty is emptied. A
 submission that breaks a form rule or a field constraint comes back with the error on
-its field and nothing saved.
+its field and nothing saved. **Preview** checks the submission the same way and shows the
+node as it would look above the form, without saving it. On an existing node the form has
+a **Delete** button for someone who may delete it.
+
+Below the fields, the form's collapsible groups hold the revision log and the URL alias,
+and, for someone with the permission, the publishing options from
+`NodePublishingOptions`:
+
+| Control | Shown with | Sets |
+| --- | --- | --- |
+| Published | `administer nodes` or `bypass node access`, and not for a type under a workflow | `status` |
+| Authoring information: Authored by, Authored on | `administer nodes` or `bypass node access` | `owner` (a username, blank for anonymous) and `created` (a date and time in the site's timezone, blank for the first save's time) |
+| Promotion options: Promoted to front page, Sticky at top of lists | `administer nodes` or `bypass node access` | `promote` and `sticky` |
+| Menu settings: Provide a menu link, Menu link title, Menu, Weight | `administer menu` | the node's menu link, in any menu but the administration and account menus |
+
+Without the permission the controls are left off and a submission naming them changes
+nothing, so a new node takes its type's publishing defaults and an edited one keeps its
+values. An unknown username is refused with **There is no account named ...**, and a menu
+the form does not offer with **Choose a menu.** `NodeMenuLinks` keeps the one menu link a
+node's form gives it, and deleting a node deletes the links pointing at its page.
+
+Adding, updating, and deleting a node are logged on the `content` channel of the
+activity log, as `<type>: added <title>.` and so on.
 
 `NodeService.build(node, viewMode, page)` draws a node through the `node` template, with
 suggestions by id, bundle, and view mode. Its fields are laid out by the type's layout for
@@ -117,7 +140,8 @@ That is `/node` unless the site names another path, and a front page left blank 
 | delete | `delete any <type> content`, or owning it and holding `delete own <type> content` |
 | create | `create <type> content`, asked about the type's id rather than a node |
 
-`bypass node access` allows every operation. An answer that depends on who owns the node
+`bypass node access` allows every operation. `administer nodes` adds no operation of its
+own and decides who sets the publishing options on the form. An answer that depends on who owns the node
 varies by the `user` cache context as well as `user.permissions`. The five per-type
 permissions come from `NodePermissions`, which builds them from the content types the
 site has.

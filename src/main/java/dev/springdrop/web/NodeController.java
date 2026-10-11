@@ -16,13 +16,15 @@ import dev.springdrop.kernel.form.FormBuilder;
 import dev.springdrop.kernel.form.FormElement;
 import dev.springdrop.kernel.form.FormRenderer;
 import dev.springdrop.kernel.form.FormState;
-import dev.springdrop.kernel.form.ValidationRule;
 import dev.springdrop.kernel.form.SelectOption;
+import dev.springdrop.kernel.form.ValidationRule;
+import dev.springdrop.kernel.language.LanguageManager;
+import dev.springdrop.kernel.log.ActivityLog;
 import dev.springdrop.kernel.menu.BreadcrumbBuilder;
+import dev.springdrop.kernel.menu.MenuNavigation;
 import dev.springdrop.kernel.moderation.ContentModerationService;
 import dev.springdrop.kernel.moderation.Moderation;
 import dev.springdrop.kernel.moderation.ModerationRefusedException;
-import dev.springdrop.kernel.menu.MenuNavigation;
 import dev.springdrop.kernel.node.NodeEntityType;
 import dev.springdrop.kernel.node.NodeLayoutAccess;
 import dev.springdrop.kernel.node.NodeRevisionAccess;
@@ -31,6 +33,7 @@ import dev.springdrop.kernel.node.NodeType;
 import dev.springdrop.kernel.node.NodeTypeManager;
 import dev.springdrop.kernel.path.AliasPatternManager;
 import dev.springdrop.kernel.path.PathAliasManager;
+import dev.springdrop.kernel.render.RenderService;
 import dev.springdrop.kernel.site.SiteInformation;
 import dev.springdrop.kernel.theme.PageChrome;
 import dev.springdrop.kernel.theme.Tab;
@@ -43,6 +46,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -75,6 +79,15 @@ public class NodeController {
     /** Whether the alias is made from the content type's pattern. */
     public static final String PATH_AUTO = "path_auto";
 
+    /** The button that shows the node as it would look, without saving it. */
+    public static final String PREVIEW = "preview";
+
+    /** The channel saving and deleting content is logged on. */
+    public static final String LOG_CHANNEL = "content";
+
+    /** The language of the translation an edit form edits, overriding the request's language. */
+    public static final String LANGCODE = "langcode";
+
     static final int TITLE_MAX_LENGTH = 255;
 
     static final int REVISION_LOG_MAX_LENGTH = 4000;
@@ -94,6 +107,10 @@ public class NodeController {
     private final ContentModerationService moderations;
     private final PathAliasManager aliases;
     private final AliasPatternManager patterns;
+    private final NodePublishingOptions options;
+    private final RenderService renderService;
+    private final ActivityLog log;
+    private final LanguageManager languages;
 
     public NodeController(
             NodeTypeManager types,
@@ -110,7 +127,11 @@ public class NodeController {
             NodeRevisionAccess revisionAccess,
             ContentModerationService moderations,
             PathAliasManager aliases,
-            AliasPatternManager patterns) {
+            AliasPatternManager patterns,
+            NodePublishingOptions options,
+            RenderService renderService,
+            ActivityLog log,
+            LanguageManager languages) {
         this.types = types;
         this.nodes = nodes;
         this.entityAccess = entityAccess;
@@ -126,6 +147,10 @@ public class NodeController {
         this.moderations = moderations;
         this.aliases = aliases;
         this.patterns = patterns;
+        this.options = options;
+        this.renderService = renderService;
+        this.log = log;
+        this.languages = languages;
     }
 
     /** The content types the person may create content of. */
@@ -146,7 +171,7 @@ public class NodeController {
         EntityData blank = nodes.create(contentType, CurrentAccount.id());
         return formPage(contentType, "Create " + contentType.label(), ADD_PATH + "/" + type,
                 nodeForm(contentType, blank, true, "", stateElement(blank, ContentModerationService.stateOf(blank)), "",
-                        hasPattern(blank)),
+                        hasPattern(blank), Map.of()),
                 Map.of(), model);
     }
 
@@ -161,7 +186,7 @@ public class NodeController {
     @GetMapping(value = "/node/{id}", produces = MediaType.TEXT_HTML_VALUE)
     @ResponseBody
     public String view(@PathVariable long id) {
-        EntityData node = permitted(id, EntityAccessHandler.VIEW);
+        EntityData node = inLanguage(permitted(id, EntityAccessHandler.VIEW), languages.current().id());
         String path = NodeEntityType.path(id);
         SiteInformation site = configStore.read(
                 SiteInformation.CONFIG_NAME, SiteInformation.class, SiteInformation.DEFAULTS);
@@ -200,25 +225,66 @@ public class NodeController {
      * revision, which may be a draft ahead of the one the site shows.
      */
     @GetMapping("/node/{id}/edit")
-    public String editForm(@PathVariable long id, Model model) {
-        EntityData node = permitted(id, EntityAccessHandler.UPDATE);
+    public String editForm(@PathVariable long id, @RequestParam(name = LANGCODE, required = false) String langcode,
+            Model model) {
+        EntityData node = editedLanguage(permitted(id, EntityAccessHandler.UPDATE), langcode);
         NodeType contentType = typeOf(node);
         EntityData base = editedRevision(node);
-        return formPage(contentType, "Edit " + base.label(), NodeEntityType.editPath(id),
+        return formPage(contentType, "Edit " + base.label(), editAction(id, langcode, base),
                 nodeForm(contentType, base, contentType.newRevision(), "",
                         stateElement(base, ContentModerationService.stateOf(base)),
                         aliases.aliasOf(NodeEntityType.path(id), base.langcode()).orElse(""),
                         hasPattern(base) && (aliases.aliasOf(NodeEntityType.path(id), base.langcode()).isEmpty()
-                                || aliases.generated(NodeEntityType.path(id), base.langcode()))),
+                                || aliases.generated(NodeEntityType.path(id), base.langcode())), Map.of()),
                 Map.of(), model);
     }
 
     @PostMapping("/node/{id}/edit")
     public String edit(@PathVariable long id, @RequestParam Map<String, String> submitted, Model model) {
-        EntityData node = permitted(id, EntityAccessHandler.UPDATE);
+        String langcode = submitted.get(LANGCODE);
+        EntityData node = editedLanguage(permitted(id, EntityAccessHandler.UPDATE), langcode);
         EntityData base = editedRevision(node);
         return save(typeOf(node), base, Optional.of(node), submitted, "Edit " + base.label(),
-                NodeEntityType.editPath(id), model);
+                editAction(id, langcode, base), model);
+    }
+
+    /** The node in the language asked for, or in the request's language, falling back to its own. */
+    private EntityData editedLanguage(EntityData node, String langcode) {
+        return inLanguage(node, langcode == null ? languages.current().id() : langcode);
+    }
+
+    private EntityData inLanguage(EntityData node, String langcode) {
+        return nodes.find(((Number) node.id()).longValue(), langcode).orElseThrow();
+    }
+
+    /** Where the edit form posts: the edit path, naming the language when one was asked for. */
+    private static String editAction(long id, String langcode, EntityData edited) {
+        return langcode == null ? NodeEntityType.editPath(id)
+                : NodeEntityType.editPath(id) + "?" + LANGCODE + "=" + edited.langcode();
+    }
+
+    @GetMapping("/node/{id}/delete")
+    public String confirmDelete(@PathVariable long id, Model model) {
+        EntityData node = permitted(id, EntityAccessHandler.DELETE);
+        model.addAttribute("title", "Delete " + node.label() + "?");
+        model.addAttribute("description", "This action cannot be undone.");
+        model.addAttribute("action", deletePath(id));
+        model.addAttribute("confirmLabel", "Delete");
+        model.addAttribute("cancelPath", NodeEntityType.path(id));
+        return "admin/confirm";
+    }
+
+    @PostMapping("/node/{id}/delete")
+    public String delete(@PathVariable long id) {
+        EntityData node = permitted(id, EntityAccessHandler.DELETE);
+        nodes.delete(id);
+        log.channel(LOG_CHANNEL).notice("{type}: deleted {title}.", Map.of("type", node.bundle(),
+                "title", node.label()));
+        return "redirect:/";
+    }
+
+    public static String deletePath(Object id) {
+        return NodeEntityType.path(id) + "/delete";
     }
 
     public static String latestPath(Object id) {
@@ -244,18 +310,21 @@ public class NodeController {
                 .forEach(field -> fields.put(field, List.of()));
         fields.putAll(formDisplays.extract(
                 NodeEntityType.ID, base.bundle(), FormDisplayConfig.DEFAULT_MODE, values));
+        Authentication who = SecurityContextHolder.getContext().getAuthentication();
+        Optional<Moderation> moderation = moderations.moderationOf(base.bundle());
+        Map<String, String> optionErrors = options.apply(fields, submitted, moderation.isPresent(), who);
         EntityData candidate = new EntityData(NodeEntityType.ID, base.id(), base.uuid(), base.bundle(),
                 submitted.getOrDefault(TITLE, ""), base.langcode(), null, fields);
-        Optional<Moderation> moderation = moderations.moderationOf(base.bundle());
         boolean newRevision = base.id() == null || moderation.isPresent() || submitted.containsKey(NEW_REVISION);
         String log = submitted.getOrDefault(REVISION_LOG, "");
         String chosenState = submitted.getOrDefault(MODERATION_STATE, "");
         String alias = submitted.getOrDefault(PATH, "").strip();
         boolean automatic = hasPattern(base) && FormRenderer.CHECKED_VALUE.equals(submitted.get(PATH_AUTO));
         FormElement tree = nodeForm(type, candidate, newRevision, log, stateElement(base, chosenState), alias,
-                automatic);
+                automatic, submitted);
 
         FormState state = forms.validate(tree, values);
+        optionErrors.forEach(state::error);
         String source = (base.id() == null) ? null : NodeEntityType.path(base.id());
         if (!automatic && !alias.isEmpty()) {
             aliases.refusal(source, alias, base.langcode()).ifPresent(reason -> state.error(PATH, reason));
@@ -263,11 +332,15 @@ public class NodeController {
         if (state.hasErrors()) {
             return formPage(type, title, action, tree, state.errors(), model);
         }
+        if (submitted.containsKey(PREVIEW)) {
+            model.addAttribute("preview", renderService.render(
+                    nodes.build(candidate, ViewDisplayConfig.FULL_MODE, false)).html());
+            return formPage(type, title, action, tree, Map.of(), model);
+        }
         EntityData saved;
         try {
             saved = moderation.isPresent()
-                    ? moderations.save(moderation.get(), candidate, live, chosenState, CurrentAccount.id(), log,
-                            SecurityContextHolder.getContext().getAuthentication())
+                    ? moderations.save(moderation.get(), candidate, live, chosenState, CurrentAccount.id(), log, who)
                     : nodes.save(candidate, CurrentAccount.id(), newRevision, log);
         } catch (EntityValidationException invalid) {
             Map<String, String> errors = new LinkedHashMap<>();
@@ -277,6 +350,9 @@ public class NodeController {
             return formPage(type, title, action, tree, Map.of(MODERATION_STATE, refused.getMessage()), model);
         }
         saveAlias(saved, alias, automatic);
+        options.saveMenuLink(saved, submitted, who);
+        this.log.channel(LOG_CHANNEL).notice(live.isEmpty() ? "{type}: added {title}." : "{type}: updated {title}.",
+                Map.of("type", saved.bundle(), "title", saved.label()));
         return "redirect:" + NodeEntityType.path(saved.id());
     }
 
@@ -333,7 +409,7 @@ public class NodeController {
      * form names.
      */
     private FormElement nodeForm(NodeType type, EntityData node, boolean newRevision, String log,
-            Optional<FormElement> moderationState, String alias, boolean automatic) {
+            Optional<FormElement> moderationState, String alias, boolean automatic, Map<String, String> submitted) {
         FormElement pathSettings = FormElement.of(ElementType.DETAILS, "path-settings").label("URL alias");
         if (hasPattern(node)) {
             pathSettings.child(FormElement.of(ElementType.CHECKBOX, PATH_AUTO).label("Generate automatic URL alias")
@@ -358,7 +434,7 @@ public class NodeController {
                 .description("Briefly describe the changes you have made.")
                 .value(log)
                 .rule(ValidationRule.maxLength(REVISION_LOG_MAX_LENGTH)));
-        return FormElement.of(ElementType.CONTAINER, "node-form")
+        FormElement form = FormElement.of(ElementType.CONTAINER, "node-form")
                 .child(FormElement.of(ElementType.TEXTFIELD, TITLE)
                         .label(type.titleLabel())
                         .markRequired()
@@ -367,10 +443,19 @@ public class NodeController {
                 .child(formDisplays.buildContainer(
                         NodeEntityType.ID, node.bundle(), FormDisplayConfig.DEFAULT_MODE, node.fields()))
                 .child(revision)
-                .child(pathSettings)
-                .child(FormElement.of(ElementType.ACTIONS, "actions")
-                        .child(FormElement.of(ElementType.SUBMIT, "save").label("Save"))
-                        .child(FormElement.of(ElementType.LINK, "cancel").label("Cancel").value(cancel)));
+                .child(pathSettings);
+        options.elements(node, moderationState.isPresent(), submitted,
+                SecurityContextHolder.getContext().getAuthentication()).forEach(form::child);
+        FormElement actions = FormElement.of(ElementType.ACTIONS, "actions")
+                .child(FormElement.of(ElementType.SUBMIT, "save").label("Save"))
+                .child(FormElement.of(ElementType.SUBMIT, PREVIEW).label("Preview").attribute("class",
+                        "btn btn-secondary"))
+                .child(FormElement.of(ElementType.LINK, "cancel").label("Cancel").value(cancel));
+        if (node.id() != null && entityAccess.may(NodeEntityType.ID, node, EntityAccessHandler.DELETE)) {
+            actions.child(FormElement.of(ElementType.LINK, "delete").label("Delete").value(deletePath(node.id()))
+                    .attribute("class", "btn btn-danger"));
+        }
+        return form.child(actions);
     }
 
     private String formPage(NodeType type, String title, String action, FormElement tree,
@@ -399,6 +484,12 @@ public class NodeController {
         }
         if (entityAccess.may(NodeEntityType.ID, node, EntityAccessHandler.UPDATE)) {
             tabs.add(new Tab("Edit", NodeEntityType.editPath(node.id()), false));
+        }
+        if (entityAccess.may(NodeEntityType.ID, node, EntityAccessHandler.DELETE)) {
+            tabs.add(new Tab("Delete", deletePath(node.id()), false));
+        }
+        if (NodeTranslationController.mayTranslate(node, entityAccess, languages)) {
+            tabs.add(new Tab("Translate", NodeTranslationController.overviewPath(node.id()), false));
         }
         if (revisionAccess.mayView(node)) {
             tabs.add(new Tab("Revisions", NodeRevisionController.historyPath(node.id()), false));

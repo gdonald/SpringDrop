@@ -75,6 +75,11 @@ public record EntityType(
         return baseTable + "_revision";
     }
 
+    /** The table a translatable type keeps each translation's label in, one row per entity and language. */
+    public String translationTable() {
+        return baseTable + "_translation";
+    }
+
     /**
      * Declares that entities of this type come in bundles: the column carrying
      * the bundle, and the config entity type whose entities define the bundles.

@@ -1,7 +1,9 @@
 package dev.springdrop.kernel.menu;
 
 import dev.springdrop.kernel.access.RouteAccessChecker;
+import dev.springdrop.kernel.cache.CacheContexts;
 import dev.springdrop.kernel.cache.CacheTags;
+import dev.springdrop.kernel.locale.Translator;
 import dev.springdrop.kernel.render.CacheMetadata;
 import dev.springdrop.kernel.routing.RouteDefinition;
 import dev.springdrop.kernel.routing.RouteRegistry;
@@ -35,16 +37,19 @@ public class MenuTreeBuilder {
     private final MenuLinkContentService contentLinks;
     private final MenuPermissionChecker permissions;
     private final RouteRegistry routes;
+    private final Translator translator;
 
     public MenuTreeBuilder(
             List<MenuLinkProvider> providers,
             MenuLinkContentService contentLinks,
             MenuPermissionChecker permissions,
-            RouteRegistry routes) {
+            RouteRegistry routes,
+            Translator translator) {
         this.providers = providers;
         this.contentLinks = contentLinks;
         this.permissions = permissions;
         this.routes = routes;
+        this.translator = translator;
     }
 
     public MenuTree build(String menuId) {
@@ -53,10 +58,12 @@ public class MenuTreeBuilder {
 
     /**
      * The tree for a menu, with the trail to the given path marked. A null path
-     * marks nothing, which is what a menu rendered outside a request does.
+     * marks nothing, which is what a menu rendered outside a request does. The
+     * titles of links declared in code are interface strings, shown in the
+     * request's language.
      */
     public MenuTree build(String menuId, String activePath) {
-        List<MenuLink> reachable = reachable(gather(menuId));
+        List<MenuLink> reachable = reachable(gather(menuId)).stream().map(this::translated).toList();
         List<MenuTreeItem> items = nest(reachable, null, effectiveParents(reachable));
         List<String> trail = trailTo(reachable, activePath);
         return new MenuTree(menuId, markTrail(items, trail), cacheability(menuId));
@@ -83,7 +90,17 @@ public class MenuTreeBuilder {
                 .withTag(MenuConfig.cacheTag(menuId))
                 .withTag(CacheTags.config(MenuConfig.configName(menuId)))
                 .withTag(CacheTags.list(MenuLinkContentEntityType.ID))
-                .withContext(RouteAccessChecker.USER_PERMISSIONS_CONTEXT);
+                .withTag(Translator.CACHE_TAG)
+                .withContext(RouteAccessChecker.USER_PERMISSIONS_CONTEXT)
+                .withContext(CacheContexts.LANGUAGES);
+    }
+
+    private MenuLink translated(MenuLink link) {
+        if (MenuLinkContentService.entityId(link.id()).isPresent()) {
+            return link;
+        }
+        return new MenuLink(link.id(), link.menu(), translator.t(link.title()), link.description(), link.url(),
+                link.parent(), link.weight(), link.expanded(), link.enabled(), link.requiredPermission());
     }
 
     private List<MenuLink> gather(String menuId) {

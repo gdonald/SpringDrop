@@ -2,7 +2,7 @@
          th:attr="data-comment=${id},data-depth=${depth}" xmlns:th="http://www.thymeleaf.org">
   <h3 class="h6 mb-1" th:text="${subject}">Subject</h3>
   <p class="text-body-secondary small mb-1">
-    Submitted by <span class="comment__author" th:text="${author}">Anonymous</span>
+    <th:block th:text="${@translator.t('Submitted by')}">Submitted by</th:block> <span class="comment__author" th:text="${author}">Anonymous</span>
     <span th:if="${!date.isEmpty()}" th:text="'on ' + ${date}">on Sat, Oct 3, 2026 - 09:00</span>
   </p>
   <p th:if="${!published}"><span class="badge text-bg-warning">Unapproved</span></p>

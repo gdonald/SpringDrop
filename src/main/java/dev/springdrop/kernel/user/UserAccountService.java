@@ -10,6 +10,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
@@ -37,7 +39,12 @@ public class UserAccountService {
         this.schemaManager = schemaManager;
     }
 
-    /** Creates the account storage, its unique indexes, and the two reserved accounts. */
+    /**
+     * Creates the account storage, its unique indexes, and the two reserved
+     * accounts. It runs as the application starts, since every request by a
+     * signed-in person reads their account, and running it again changes nothing.
+     */
+    @EventListener(ApplicationReadyEvent.class)
     public void install() {
         entityTypeManager.installStorage(UserEntityType.ID);
         schemaManager.createUniqueIndex("user_name_unique", UserEntityType.ID, List.of("lower(label)"));
@@ -90,9 +97,17 @@ public class UserAccountService {
     }
 
     public void block(long id) {
+        setStatus(id, false);
+    }
+
+    public void unblock(long id) {
+        setStatus(id, true);
+    }
+
+    private void setStatus(long id, boolean active) {
         entities.load(UserEntityType.ID, id).ifPresent(account -> {
             Map<String, Object> values = new LinkedHashMap<>(account.fields());
-            values.put("status", false);
+            values.put("status", active);
             entities.save(account.withFields(values));
         });
     }

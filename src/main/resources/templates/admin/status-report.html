@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title}">Status report</title>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+</head>
+<body>
+<main class="container py-5">
+  <h1 class="h3" th:text="${title}">Status report</h1>
+
+  <div class="row g-3 mb-4 status-summary">
+    <div class="col-auto">
+      <div class="card"><div class="card-body">
+        <span class="h4 status-errors" th:text="${summary.errors}">0</span>
+        <span th:text="${summary.errors == 1 ? 'error' : 'errors'}">errors</span>
+      </div></div>
+    </div>
+    <div class="col-auto">
+      <div class="card"><div class="card-body">
+        <span class="h4 status-warnings" th:text="${summary.warnings}">0</span>
+        <span th:text="${summary.warnings == 1 ? 'warning' : 'warnings'}">warnings</span>
+      </div></div>
+    </div>
+    <div class="col-auto">
+      <div class="card"><div class="card-body">
+        <span class="h4 status-checked" th:text="${summary.requirements.size()}">0</span> checked
+      </div></div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table align-middle status-requirements">
+      <thead>
+      <tr>
+        <th scope="col">Check</th>
+        <th scope="col">Status</th>
+        <th scope="col">Details</th>
+        <th scope="col">Action</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:each="requirement : ${summary.requirements}"
+          th:class="${T(dev.springdrop.web.StatusReportController).rowClass(requirement.severity)}"
+          th:attr="data-severity=${requirement.severity}">
+        <th scope="row" th:text="${requirement.title}">Cron maintenance tasks</th>
+        <td th:text="${requirement.value}">Last run 3 days ago</td>
+        <td th:text="${requirement.description}">Cron has not run for 3 days.</td>
+        <td>
+          <a class="btn btn-secondary btn-sm" th:if="${!requirement.linkPath.isEmpty()}"
+             th:href="${requirement.linkPath}" th:text="${requirement.linkLabel}">Run cron</a>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+</body>
+</html>

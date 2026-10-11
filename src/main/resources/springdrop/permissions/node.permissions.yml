@@ -5,6 +5,10 @@ administer content types:
   title: Administer content types
   description: Add content types, and change what each is called and how its nodes start out.
   restricted: true
+administer nodes:
+  title: Administer content
+  description: Set whether content is published, promoted, and sticky, who wrote it, and when.
+  restricted: true
 bypass node access:
   title: Bypass content access control
   description: View, edit, and delete every node, published or not, whoever wrote it.

@@ -2,6 +2,7 @@ package dev.springdrop.kernel.views;
 
 import dev.springdrop.kernel.cache.CacheTags;
 import dev.springdrop.kernel.cache.CacheTagsInvalidatedEvent;
+import dev.springdrop.kernel.locale.Translator;
 import dev.springdrop.kernel.plugin.PluginManager;
 import dev.springdrop.kernel.plugin.PluginRegistry;
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.springframework.context.event.EventListener;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +26,8 @@ import org.springframework.stereotype.Component;
  * changes, and the list of its base entity type and of each type its
  * relationships reach, cleared when any entity of the type is saved or deleted. The
  * drawings carrying a tag are dropped when the tag is invalidated. Who is asking is part of the key through
- * their permissions, since a result the reader may not view is left out.
+ * their permissions, since a result the reader may not view is left out, and so is the request's language.
+ * Every drawing also carries the {@code locale} tag, dropped when an interface translation changes.
  */
 @Component
 public class ViewCache {
@@ -55,14 +58,16 @@ public class ViewCache {
     public ViewRenderer.Rendered render(ViewConfig view, String displayId, List<String> arguments,
             Map<String, String> input, String path, boolean exposedForm, Authentication authentication) {
         String key = String.join("|", view.id(), displayId, String.join("/", arguments),
-                new TreeMap<>(input).toString(), path, String.valueOf(exposedForm), permissions(authentication));
+                new TreeMap<>(input).toString(), path, String.valueOf(exposedForm), permissions(authentication),
+                LocaleContextHolder.getLocale().toLanguageTag());
         Entry entry = entries.computeIfAbsent(key, ignored -> new Entry(
                 renderer.render(view, displayId, arguments, input, path, exposedForm), tags(view, displayId)));
         return entry.rendered();
     }
 
     private Set<String> tags(ViewConfig view, String displayId) {
-        Set<String> tags = new TreeSet<>(Set.of(configTag(view.id()), listTag(view.baseEntityType())));
+        Set<String> tags = new TreeSet<>(Set.of(configTag(view.id()), listTag(view.baseEntityType()),
+                Translator.CACHE_TAG));
         PluginManager<RelationshipHandler> relationships = registry.managerFor(RelationshipHandler.class);
         List<HandlerConfig> configured = view.options(displayId).relationships();
         for (HandlerConfig relationship : configured == null ? List.<HandlerConfig>of() : configured) {

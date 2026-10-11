@@ -1,14 +1,16 @@
 <nav aria-label="Pagination" th:if="${!pager.pages.isEmpty()}" xmlns:th="http://www.thymeleaf.org">
   <ul class="pagination">
     <li class="page-item" th:classappend="${pager.previousUrl.isPresent()} ? '' : 'disabled'">
-      <a class="page-link" th:href="${pager.previousUrl.orElse('#')}">Previous</a>
+      <a class="page-link" th:href="${pager.previousUrl.orElse('#')}"
+         th:text="${@translator.t('Previous')}">Previous</a>
     </li>
     <li class="page-item" th:each="page : ${pager.pages}"
         th:classappend="${page.current} ? 'active' : ''">
       <a class="page-link" th:href="${page.url}" th:text="${page.number}">1</a>
     </li>
     <li class="page-item" th:classappend="${pager.nextUrl.isPresent()} ? '' : 'disabled'">
-      <a class="page-link" th:href="${pager.nextUrl.orElse('#')}">Next</a>
+      <a class="page-link" th:href="${pager.nextUrl.orElse('#')}"
+         th:text="${@translator.t('Next')}">Next</a>
     </li>
   </ul>
 </nav>

@@ -26,6 +26,9 @@ public class NodePermissions implements PermissionProvider {
     /** Viewing, editing, and deleting every node, published or not. */
     public static final String BYPASS_NODE_ACCESS = "bypass node access";
 
+    /** Setting whether a node is published and promoted, who wrote it, and when. */
+    public static final String ADMINISTER_NODES = "administer nodes";
+
     /** Reading one's own nodes while they are unpublished. */
     public static final String VIEW_OWN_UNPUBLISHED = "view own unpublished content";
 

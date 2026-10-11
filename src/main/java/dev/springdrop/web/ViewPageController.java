@@ -1,5 +1,7 @@
 package dev.springdrop.web;
 
+import dev.springdrop.kernel.action.ActionConfig;
+import dev.springdrop.kernel.action.BulkOperations;
 import dev.springdrop.kernel.block.BlockContext;
 import dev.springdrop.kernel.block.BlockPageRenderer;
 import dev.springdrop.kernel.config.ConfigStore;
@@ -52,9 +54,12 @@ public class ViewPageController {
     private final ConfigStore configStore;
     private final EntityTypeManager entityTypes;
     private final PathAliasManager aliases;
+    private final BulkOperations bulk;
+    private final BulkForm bulkForm;
 
     public ViewPageController(ViewManager views, ViewExecutor executor, ViewCache cache, BlockPageRenderer pages,
-            ConfigStore configStore, EntityTypeManager entityTypes, PathAliasManager aliases) {
+            ConfigStore configStore, EntityTypeManager entityTypes, PathAliasManager aliases, BulkOperations bulk,
+            BulkForm bulkForm) {
         this.views = views;
         this.executor = executor;
         this.cache = cache;
@@ -62,6 +67,8 @@ public class ViewPageController {
         this.configStore = configStore;
         this.entityTypes = entityTypes;
         this.aliases = aliases;
+        this.bulk = bulk;
+        this.bulkForm = bulkForm;
     }
 
     @GetMapping(ViewPageFilter.PAGE_PREFIX + "{view}/{display}")
@@ -88,8 +95,24 @@ public class ViewPageController {
                     .body(feed(site, shown, rendered.result().rows(), path));
         }
         String title = shown.title().isEmpty() ? config.label() : shown.title();
+        String html = bulkFormFor(config, display, rendered, path, request) + rendered.html();
         return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(pages.render(PageChrome.of(site.name(), title),
-                Renderable.of("markup").with("value", rendered.html()), BlockContext.of(path, title)).html());
+                Renderable.of("markup").with("value", html), BlockContext.of(path, title)).html());
+    }
+
+    /**
+     * The bulk form for a listing whose display has one and found results. It
+     * carries the form token, so it is drawn here for each request rather than
+     * kept with the cached listing.
+     */
+    private String bulkFormFor(ViewConfig config, String display, ViewRenderer.Rendered rendered, String path,
+            HttpServletRequest request) {
+        List<ActionConfig> offered = bulk.offered(config, display);
+        if (offered.isEmpty() || rendered.result().rows().isEmpty()) {
+            return "";
+        }
+        String query = request.getQueryString();
+        return bulkForm.render(config.id(), display, offered, query == null ? path : path + "?" + query, request);
     }
 
     private String feed(SiteInformation site, ViewDisplay display, List<ResultRow> rows, String path) {

@@ -6,6 +6,7 @@ import dev.springdrop.kernel.form.ElementType;
 import dev.springdrop.kernel.form.FormElement;
 import dev.springdrop.kernel.form.FormRenderer;
 import dev.springdrop.kernel.form.SelectOption;
+import dev.springdrop.kernel.language.LanguageManager;
 import dev.springdrop.kernel.role.RoleConfig;
 import dev.springdrop.kernel.role.RoleManager;
 import dev.springdrop.kernel.user.AccountCancellationService;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,12 +51,16 @@ public class PeopleController {
 
     public static final String METHOD = "method";
 
+    /** The language the account prefers pages in. */
+    public static final String LANGUAGE = "preferred_language";
+
     private final UserAccountService accounts;
     private final RoleManager roles;
     private final AccountCancellationService cancellations;
     private final EntityCrudService entities;
     private final FormRenderer renderer;
     private final ViewEmbed views;
+    private final LanguageManager languages;
 
     public PeopleController(
             UserAccountService accounts,
@@ -62,13 +68,15 @@ public class PeopleController {
             AccountCancellationService cancellations,
             EntityCrudService entities,
             FormRenderer renderer,
-            ViewEmbed views) {
+            ViewEmbed views,
+            LanguageManager languages) {
         this.accounts = accounts;
         this.roles = roles;
         this.cancellations = cancellations;
         this.entities = entities;
         this.renderer = renderer;
         this.views = views;
+        this.languages = languages;
     }
 
     @GetMapping(PATH)
@@ -94,18 +102,27 @@ public class PeopleController {
     @GetMapping(PATH + "/{id}/edit")
     public String edit(@PathVariable long id, Model model) {
         EntityData account = entities.load(UserEntityType.ID, id).orElseThrow();
+        return editPage(account, Map.of(), model);
+    }
 
+    private String editPage(EntityData account, Map<String, String> errors, Model model) {
         model.addAttribute("title", "Edit " + account.label());
-        model.addAttribute("description", "What this account may do, and whether it accepts personal messages.");
-        model.addAttribute("action", PATH + "/" + id + "/edit");
-        model.addAttribute("formMarkup", renderer.render(rolesForm(account)));
+        model.addAttribute("description", "What this account may do, which language it reads the site in, and "
+                + "whether it accepts personal messages.");
+        model.addAttribute("action", PATH + "/" + account.id() + "/edit");
+        model.addAttribute("formMarkup", renderer.render(rolesForm(account), errors));
         model.addAttribute("listing", "");
         return "admin/people";
     }
 
     @PostMapping(PATH + "/{id}/edit")
-    public String save(@PathVariable long id, @RequestParam Map<String, String> submitted) {
-        entities.load(UserEntityType.ID, id).ifPresent(account -> {
+    public String save(@PathVariable long id, @RequestParam Map<String, String> submitted, Model model) {
+        Optional<EntityData> found = entities.load(UserEntityType.ID, id);
+        String language = submitted.getOrDefault(LANGUAGE, "");
+        if (found.isPresent() && !language.isEmpty() && languages.find(language).isEmpty()) {
+            return editPage(found.get(), Map.of(LANGUAGE, "Choose a language."), model);
+        }
+        found.ifPresent(account -> {
             List<String> held = new ArrayList<>();
             roles.all().stream()
                     .filter(role -> !RoleConfig.ANONYMOUS.equals(role.id()))
@@ -116,6 +133,9 @@ public class PeopleController {
             Map<String, Object> values = new LinkedHashMap<>(account.fields());
             values.put(UserEntityType.ROLES, held);
             values.put(UserEntityType.CONTACT, submitted.containsKey(CONTACT));
+            if (!language.isEmpty()) {
+                values.put(UserEntityType.PREFERRED_LANGUAGE, language);
+            }
             entities.save(account.withFields(values));
         });
         return "redirect:" + PATH;
@@ -158,6 +178,12 @@ public class PeopleController {
                         .label(role.label())
                         .value(heldRoles.contains(role.id()))));
 
+        Object preferred = account.fields().get(UserEntityType.PREFERRED_LANGUAGE);
+        form.child(FormElement.of(ElementType.SELECT, LANGUAGE).label("Preferred language")
+                .description("The language the site is shown in for this account, when the account preference "
+                        + "chooses the language.")
+                .value(preferred == null ? languages.defaultLangcode() : String.valueOf(preferred))
+                .options(languages.all().stream().map(each -> new SelectOption(each.id(), each.label())).toList()));
         return form.child(FormElement.of(ElementType.CHECKBOX, CONTACT)
                         .label("Personal contact form")
                         .description("Let other people send this account messages through its contact form.")

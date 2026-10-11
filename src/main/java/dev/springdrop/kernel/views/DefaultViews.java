@@ -7,6 +7,7 @@ import dev.springdrop.kernel.node.NodePermissions;
 import dev.springdrop.kernel.security.Permissions;
 import dev.springdrop.kernel.user.UserEntityType;
 import dev.springdrop.kernel.views.handlers.BaseValueField;
+import dev.springdrop.kernel.views.handlers.BulkFormField;
 import dev.springdrop.kernel.views.handlers.EntityLabelField;
 import dev.springdrop.kernel.views.handlers.FullPager;
 import dev.springdrop.kernel.views.handlers.LinksField;
@@ -86,10 +87,14 @@ public class DefaultViews {
         return new ViewDisplay(ViewDisplay.DEFAULT, ViewDisplay.DEFAULT, title, options, settings);
     }
 
-    /** All content, for editors: a sortable table with exposed filters, the latest change first. */
+    /**
+     * All content, for editors: a sortable table with exposed filters, the latest change first, and a box on
+     * each row for applying an action to the ones ticked.
+     */
     static ViewConfig content() {
         ViewOptions options = new ViewOptions(
-                List.of(field("title", EntityLabelField.ID, "label", Map.of(FieldHandler.LABEL, "Title")),
+                List.of(field("bulk", BulkFormField.ID, "id", Map.of()),
+                        field("title", EntityLabelField.ID, "label", Map.of(FieldHandler.LABEL, "Title")),
                         field("type", BaseValueField.ID, "bundle", Map.of(FieldHandler.LABEL, "Content type")),
                         field("author", EntityLabelField.ID, "label", Map.of(FieldHandler.LABEL, "Author",
                                 EntityLabelField.LINK, false)).through("author"),
@@ -102,7 +107,9 @@ public class DefaultViews {
                 List.of(exposed("title", "label", Map.of(ValueFilter.OPERATOR, "contains", "label", "Title")),
                         exposed("type", NodeEntityType.BUNDLE_KEY, Map.of("label", "Content type")),
                         exposed("status", BaseFieldDefinition.STATUS, Map.of("type", "boolean", "label", "Status",
-                                "true_label", "Published", "false_label", "Unpublished"))),
+                                "true_label", "Published", "false_label", "Unpublished")),
+                        exposed("author", "label", Map.of(ValueFilter.OPERATOR, "contains", "label", "Author"))
+                                .through("author")),
                 List.of(HandlerConfig.of("changed", StandardSort.ID, BaseFieldDefinition.CHANGED,
                         Map.of(SortHandler.ORDER, "desc"))),
                 List.of(),

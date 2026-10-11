@@ -1,5 +1,7 @@
 package dev.springdrop.web;
 
+import dev.springdrop.kernel.entity.EntityTypeManager;
+import dev.springdrop.kernel.entity.TranslatableFields;
 import dev.springdrop.kernel.field.FieldConfigManager;
 import dev.springdrop.kernel.field.FieldInstanceConfig;
 import dev.springdrop.kernel.field.FieldStorageConfig;
@@ -48,6 +50,9 @@ public class FieldUiController {
 
     public static final String DEFAULT_VALUE = "default_value";
 
+    /** Whether each translation holds its own values of the field. */
+    public static final String TRANSLATABLE = "translatable";
+
     /** Which step of the add flow a submission came from. */
     public static final String STEP = "step";
 
@@ -55,13 +60,18 @@ public class FieldUiController {
     private final FormRenderer renderer;
     private final PluginRegistry pluginRegistry;
     private final FormBuilder forms;
+    private final EntityTypeManager entityTypes;
+    private final TranslatableFields translatableFields;
 
     public FieldUiController(
-            FieldConfigManager fields, FormRenderer renderer, PluginRegistry pluginRegistry, FormBuilder forms) {
+            FieldConfigManager fields, FormRenderer renderer, PluginRegistry pluginRegistry, FormBuilder forms,
+            EntityTypeManager entityTypes, TranslatableFields translatableFields) {
         this.fields = fields;
         this.renderer = renderer;
         this.pluginRegistry = pluginRegistry;
         this.forms = forms;
+        this.entityTypes = entityTypes;
+        this.translatableFields = translatableFields;
     }
 
     public static String fieldsPath(String entityTypeId, String bundle) {
@@ -149,6 +159,9 @@ public class FieldUiController {
         fields.createStorage(new FieldStorageConfig(
                 field, entityType, storage.type(), cardinality(submitted), storage.settings()));
         fields.createInstance(instance(entityType, bundle, field, submitted).withSettings(settings));
+        if (entityTypes.require(entityType).translatable()) {
+            translatableFields.set(entityType, field, submitted.containsKey(TRANSLATABLE));
+        }
         return "redirect:" + fieldsPath(entityType, bundle);
     }
 
@@ -253,6 +266,12 @@ public class FieldUiController {
                 .child(requiredElement(instance.required()))
                 .child(descriptionElement(instance.description()))
                 .child(defaultValueElement(instance.defaultValue()));
+        if (entityTypes.require(storage.entityTypeId()).translatable()) {
+            form.child(FormElement.of(ElementType.CHECKBOX, TRANSLATABLE).label("Users may translate this field")
+                    .description("Each translation holds its own values. Otherwise every translation shows the "
+                            + "same values.")
+                    .value(translatableFields.translatable(storage.entityTypeId(), storage.name())));
+        }
         List<FormElement> typeSettings = fields.fieldType(storage.type()).instanceSettingsForm(instance.settings());
         if (!typeSettings.isEmpty()) {
             FormElement fieldset = FormElement.of(ElementType.FIELDSET, "type-settings").label("Field settings");

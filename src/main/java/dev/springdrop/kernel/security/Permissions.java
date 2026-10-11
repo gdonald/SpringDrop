@@ -29,6 +29,24 @@ public interface Permissions {
     /** Adding workflows and deciding their states and transitions. */
     String ADMINISTER_WORKFLOWS = "administer workflows";
 
+    /** Adding languages and deciding how a request's language is chosen. */
+    String ADMINISTER_LANGUAGES = "administer languages";
+
+    /** Translating the site's interface strings, and importing and exporting translations. */
+    String TRANSLATE_INTERFACE = "translate interface";
+
+    /** Adding, editing, and deleting translations of content the person may change. */
+    String TRANSLATE_CONTENT = "translate content";
+
+    /** Translating the names, help, and titles config objects show. */
+    String TRANSLATE_CONFIGURATION = "translate configuration";
+
+    /** Choosing which entity types are served over REST, by which methods, and in which formats. */
+    String ADMINISTER_REST_RESOURCES = "administer rest resources";
+
+    /** Reading the activity log and the status report. */
+    String ACCESS_SITE_REPORTS = "access site reports";
+
     /** Giving a piece of content that may be edited a layout of its own. */
     String CONFIGURE_LAYOUT_OVERRIDES = "configure layout overrides";
 }

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title}">Export translations</title>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+</head>
+<body>
+<main class="container py-5">
+  <h1 class="h3" th:text="${title}">Export translations</h1>
+  <p>Each language's translations as a gettext .po file.</p>
+  <ul class="list-unstyled export-languages">
+    <li class="mb-2" th:each="language : ${languages}">
+      <a class="btn btn-primary" th:href="${exportPath} + ${language.id}"
+         th:text="'Download ' + ${language.label}">Download French</a>
+    </li>
+  </ul>
+</main>
+</body>
+</html>

@@ -22,7 +22,9 @@ A content entity type owns a base table named after the type, holding one row pe
 entity, and a revision table named `<type>_revision` when the type is revisionable.
 The base table carries the type's keys: id, uuid, label, the bundle column when the
 type has bundles, `langcode` when it is translatable, and `revision_id` when it is
-revisionable. Config entity types have no tables: each entity is one config object
+revisionable. A translatable type also has `<type>_translation`, one row per entity and
+language it is translated into, holding the translation's label and keyed by id and
+`langcode`. Config entity types have no tables: each entity is one config object
 named `<entity type>.<id>`.
 
 ## Static vs. dynamic schema
