@@ -7,7 +7,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import org.springframework.core.Ordered;
+import dev.springdrop.kernel.security.SecurityConfig;
+import org.springframework.boot.security.autoconfigure.web.servlet.SecurityFilterProperties;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -16,25 +17,27 @@ import org.thymeleaf.context.Context;
 
 /**
  * Serves a maintenance page while maintenance mode is enabled. Excluded paths
- * (the actuator and the error pipeline) stay reachable so health checks and
- * error rendering keep working, and a {@link MaintenanceBypass} can let
- * privileged requests through.
+ * (the actuator, the error pipeline, and signing in and out) stay reachable so
+ * health checks and error rendering keep working and an administrator can
+ * sign in, and a {@link MaintenanceBypass} can let privileged requests
+ * through. It runs after the security chain, so it knows who is asking.
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE + 10)
+@Order(SecurityFilterProperties.DEFAULT_FILTER_ORDER + 10)
 public class MaintenanceModeFilter extends OncePerRequestFilter {
 
-    private static final List<String> EXCLUDED_PREFIXES = List.of("/actuator", "/error");
+    private static final List<String> EXCLUDED_PREFIXES = List.of("/actuator", "/error", SecurityConfig.LOGIN_PATH,
+            SecurityConfig.LOGOUT_PATH);
 
-    private final MaintenanceProperties properties;
+    private final Maintenance maintenance;
     private final MaintenanceBypass bypass;
     private final ITemplateEngine templateEngine;
 
     public MaintenanceModeFilter(
-            MaintenanceProperties properties,
+            Maintenance maintenance,
             MaintenanceBypass bypass,
             ITemplateEngine templateEngine) {
-        this.properties = properties;
+        this.maintenance = maintenance;
         this.bypass = bypass;
         this.templateEngine = templateEngine;
     }
@@ -48,7 +51,7 @@ public class MaintenanceModeFilter extends OncePerRequestFilter {
         if (isBlocked(request)) {
             response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
             response.setContentType("text/html;charset=UTF-8");
-            Context context = new Context(request.getLocale(), Map.of("message", properties.message()));
+            Context context = new Context(request.getLocale(), Map.of("message", maintenance.settings().message()));
             response.getWriter().write(templateEngine.process("maintenance", context));
             return;
         }
@@ -57,7 +60,7 @@ public class MaintenanceModeFilter extends OncePerRequestFilter {
     }
 
     private boolean isBlocked(HttpServletRequest request) {
-        if (!properties.enabled()) {
+        if (!maintenance.settings().enabled()) {
             return false;
         }
         if (isExcluded(request.getRequestURI())) {

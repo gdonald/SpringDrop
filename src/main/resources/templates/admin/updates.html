@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title}">Database updates</title>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+</head>
+<body>
+<div th:replace="~{fragments/toolbar :: toolbar}"></div>
+<div th:replace="~{fragments/messages :: messages}"></div>
+<div th:replace="~{fragments/help :: help}"></div>
+<main class="container py-5">
+  <h1 class="h3" th:text="${title}">Database updates</h1>
+  <th:block th:replace="~{fragments/actions :: localTasks(${localTasks})}"></th:block>
+  <th:block th:if="${pending.isEmpty()}"><th:block
+      th:replace="~{fragments/actions :: empty('No pending updates.')}"></th:block></th:block>
+  <th:block th:if="${!pending.isEmpty()}">
+    <table class="table align-middle admin-listing">
+      <thead>
+      <tr>
+        <th scope="col">Module</th>
+        <th scope="col">Update</th>
+        <th scope="col">Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:each="routine : ${pending}" th:attr="data-update=${routine.module() + ':' + routine.version()}">
+        <td th:text="${routine.module()}">system</td>
+        <td th:text="${routine.version()}">9001</td>
+        <td th:text="${routine.description()}">Moves the depth setting.</td>
+      </tr>
+      </tbody>
+    </table>
+    <form method="post" th:action="${action}">
+      <p class="text-body-secondary">The site is in maintenance mode while the updates run.</p>
+      <button type="submit" class="btn btn-primary">Apply pending updates</button>
+    </form>
+  </th:block>
+</main>
+</body>
+</html>

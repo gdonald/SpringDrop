@@ -3,7 +3,6 @@ package dev.springdrop.kernel.media.sources;
 import dev.springdrop.kernel.file.FileFieldType;
 import dev.springdrop.kernel.file.FileFormatter;
 import dev.springdrop.kernel.file.FileItem;
-import dev.springdrop.kernel.file.FileSchemes;
 import dev.springdrop.kernel.file.FileService;
 import dev.springdrop.kernel.file.ManagedFile;
 import dev.springdrop.kernel.media.MediaSource;
@@ -34,7 +33,7 @@ abstract class FileBasedSource implements MediaSource {
 
     @Override
     public Map<String, Object> sourceFieldStorageSettings() {
-        return Map.of(FileItem.URI_SCHEME, FileSchemes.PUBLIC);
+        return Map.of();
     }
 
     @Override

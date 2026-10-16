@@ -1,0 +1,10 @@
+data:
+  id: "front_end_content"
+  theme: "front-end"
+  region: "content"
+  plugin: "system_main_block"
+  label: "Main page content"
+  labelDisplay: false
+  weight: 0
+  settings: {}
+  visibility: []

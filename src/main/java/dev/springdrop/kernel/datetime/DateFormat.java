@@ -5,4 +5,6 @@ package dev.springdrop.kernel.datetime;
  * pattern. Stored as a config object so it can be customized per site.
  */
 public record DateFormat(String label, String pattern) {
+
+    public static final String CONFIG_PREFIX = "date_format";
 }

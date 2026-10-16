@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title}">Export a single item</title>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+</head>
+<body>
+<div th:replace="~{fragments/toolbar :: toolbar}"></div>
+<div th:replace="~{fragments/messages :: messages}"></div>
+<div th:replace="~{fragments/help :: help}"></div>
+<main class="container py-5">
+  <h1 class="h3" th:text="${title}">Export a single item</h1>
+  <form method="get" th:action="${action}" class="row g-2 align-items-end mb-3">
+    <div class="col-md-8">
+      <label class="form-label" for="config-name">Configuration name</label>
+      <select class="form-select" id="config-name" name="name">
+        <option value="">Choose an item</option>
+        <option th:each="name : ${names}" th:value="${name}" th:text="${name}"
+                th:selected="${name == chosen}">user.role.editor</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <button type="submit" class="btn btn-primary">Show</button>
+    </div>
+  </form>
+  <label class="form-label" for="config-document" th:if="${!document.isEmpty()}">Exported file</label>
+  <textarea class="form-control font-monospace config-document" id="config-document" rows="20" readonly
+            th:if="${!document.isEmpty()}" th:text="${document}">uuid: ...</textarea>
+</main>
+</body>
+</html>

@@ -7,7 +7,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
 
@@ -16,9 +15,9 @@ import org.springframework.stereotype.Component;
  * and the cache contexts each page varies by. A page for someone not signed in
  * is kept finished. A page for someone signed in is kept as its shell, its
  * named placeholders built again for each request, and always varies by the
- * account. Each page is kept at most {@code springdrop.cache.page-max-age},
- * ten minutes unless that says otherwise, since some parts of a page, such as
- * its tabs and breadcrumb, carry no cache tags.
+ * account. Each page is kept at most as long as the performance settings say,
+ * since some parts of a page, such as its tabs and breadcrumb, carry no cache
+ * tags. A page cache lifetime of 0 keeps no page.
  */
 @Component
 public class PageCache {
@@ -36,12 +35,16 @@ public class PageCache {
     private static final Set<String> SIGNED_IN_CONTEXTS = Set.of(CacheContexts.USER);
 
     private final VariationCache entries;
-    private final Duration maxAge;
+    private final Performance performance;
 
     public PageCache(CacheManager cacheManager, CacheTagInvalidator invalidator, CacheContexts contexts, Clock clock,
-            @Value("${springdrop.cache.page-max-age:PT10M}") Duration maxAge) {
+            Performance performance) {
         this.entries = new VariationCache(cacheManager.getCache(CACHE_NAME), invalidator, contexts, clock);
-        this.maxAge = maxAge;
+        this.performance = performance;
+    }
+
+    private Duration maxAge() {
+        return Duration.ofSeconds(performance.settings().pageCacheMaxAge());
     }
 
     private static List<String> keys(String kind, String address) {
@@ -53,7 +56,7 @@ public class PageCache {
     }
 
     public void keepFinished(String address, CacheMetadata metadata, Finished page) {
-        entries.put(keys("anonymous", address), Set.of(), metadata.withMaxAge(maxAge).merge(metadata), page);
+        entries.put(keys("anonymous", address), Set.of(), metadata.withMaxAge(maxAge()).merge(metadata), page);
     }
 
     public Optional<Unfinished> unfinished(String address) {
@@ -62,7 +65,7 @@ public class PageCache {
 
     public void keepUnfinished(String address, CacheMetadata metadata, Unfinished page) {
         entries.put(keys("dynamic", address), SIGNED_IN_CONTEXTS,
-                metadata.withContext(CacheContexts.USER).withMaxAge(maxAge).merge(metadata), page);
+                metadata.withContext(CacheContexts.USER).withMaxAge(maxAge()).merge(metadata), page);
     }
 
     /** Drops every kept page. */

@@ -85,7 +85,9 @@ entity type, and entity id:
 
 The `file` field type stores `target_id`, `description`, and `display` per value. The
 `image` field type stores `target_id`, `alt`, `title`, `width`, and `height`. Both keep
-uploads in the scheme the storage's `uri_scheme` setting names, `public` by default.
+uploads in the scheme the storage's `uri_scheme` setting names, or in the site's default
+download method, set in the [file system settings](site-settings.md#file-system), when it
+names none. Core's field types leave the setting out, so their uploads follow the default.
 
 Their instance settings bound what may be attached:
 

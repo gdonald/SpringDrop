@@ -1,0 +1,10 @@
+data:
+  id: "front_end_help"
+  theme: "front-end"
+  region: "help"
+  plugin: "help_block"
+  label: "Help"
+  labelDisplay: false
+  weight: 0
+  settings: {}
+  visibility: []

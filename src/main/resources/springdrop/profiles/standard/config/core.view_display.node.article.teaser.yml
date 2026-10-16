@@ -1,0 +1,31 @@
+dependencies:
+  config:
+  - "field.instance.node.article.body"
+  - "field.instance.node.article.field_image"
+  - "field.instance.node.article.field_tags"
+data:
+  entityTypeId: "node"
+  bundle: "article"
+  mode: "teaser"
+  slots:
+    field_image:
+      fieldName: "field_image"
+      handler: "image"
+      weight: -1
+      settings:
+        image_style: "medium"
+    body:
+      fieldName: "body"
+      handler: "text_summary_or_trimmed"
+      weight: 0
+      settings: {}
+    field_tags:
+      fieldName: "field_tags"
+      handler: "entity_reference_label"
+      weight: 10
+      settings: {}
+  hiddenLabels:
+  - "field_image"
+  - "body"
+  disabled:
+  - "comment"

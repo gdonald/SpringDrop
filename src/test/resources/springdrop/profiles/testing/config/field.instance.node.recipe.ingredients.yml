@@ -1,0 +1,12 @@
+dependencies:
+  config:
+  - "node_type.recipe"
+data:
+  fieldName: "ingredients"
+  entityTypeId: "node"
+  bundle: "recipe"
+  label: "Ingredients"
+  description: ""
+  required: false
+  defaultValue: null
+  settings: {}

@@ -14,6 +14,7 @@ import java.util.Map;
  * A native date input for a field storing dates, and a date and time input for
  * one storing moments. What the person enters is read in the site's timezone and
  * stored as an instant, so the same moment shows the same way it was typed.
+ * The input carries the day the site's week starts on.
  */
 @SpringDropPlugin(id = DateWidget.ID, type = FieldWidget.class)
 public class DateWidget implements FieldWidget {
@@ -34,10 +35,10 @@ public class DateWidget implements FieldWidget {
     @Override
     public FormElement element(WidgetContext context, int delta, Object value) {
         if (dateOnly(context)) {
-            return Widgets.control(ElementType.DATE, context, delta, value);
+            return Widgets.firstDayOfWeek(Widgets.control(ElementType.DATE, context, delta, value), dateFormatService);
         }
-        return Widgets.control(ElementType.DATETIME, context, delta,
-                LocalDateTimes.toInput(value, dateFormatService.siteTimezone()));
+        return Widgets.firstDayOfWeek(Widgets.control(ElementType.DATETIME, context, delta,
+                LocalDateTimes.toInput(value, dateFormatService.siteTimezone())), dateFormatService);
     }
 
     @Override

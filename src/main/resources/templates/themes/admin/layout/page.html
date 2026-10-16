@@ -16,6 +16,7 @@
   </style>
 </head>
 <body class="admin-page">
+<nav th:replace="~{fragments/toolbar :: toolbarMarkup}"></nav>
 <th:block th:utext="${slots['header']}"></th:block>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark" id="admin-toolbar">
   <div class="container-fluid">

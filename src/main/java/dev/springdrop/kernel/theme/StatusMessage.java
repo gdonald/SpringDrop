@@ -1,10 +1,14 @@
 package dev.springdrop.kernel.theme;
 
+import java.io.Serializable;
+
 /**
  * A message shown to the reader above the page content. The severity chooses the
  * Bootstrap alert the theme draws it as.
  */
-public record StatusMessage(Severity severity, String text) {
+public record StatusMessage(Severity severity, String text) implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     public enum Severity {
         SUCCESS("alert-success"),

@@ -2,5 +2,6 @@ name: content
 label: Content
 description: Depends on foundation.
 version: "1.0"
+package: Core
 dependencies:
   - foundation

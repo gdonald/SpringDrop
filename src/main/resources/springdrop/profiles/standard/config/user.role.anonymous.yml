@@ -1,0 +1,9 @@
+data:
+  id: "anonymous"
+  label: "Anonymous visitor"
+  weight: 0
+  permissions:
+  - "access content"
+  - "access comments"
+  - "use text format restricted_html"
+  administrator: false

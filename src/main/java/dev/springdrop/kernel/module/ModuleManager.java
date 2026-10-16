@@ -1,9 +1,10 @@
 package dev.springdrop.kernel.module;
 
+import dev.springdrop.kernel.update.ModuleInstalledEvent;
+import java.util.List;
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.table;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -12,6 +13,7 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Table;
 import org.jooq.impl.SQLDataType;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 /**
@@ -30,8 +32,11 @@ public class ModuleManager {
     private final ModuleRegistry registry;
     private final Map<String, ModuleLifecycle> lifecycles;
     private final DSLContext dsl;
+    private final ApplicationEventPublisher events;
 
-    public ModuleManager(ModuleRegistry registry, List<ModuleLifecycle> lifecycles, DSLContext dsl) {
+    public ModuleManager(ModuleRegistry registry, List<ModuleLifecycle> lifecycles, DSLContext dsl,
+            ApplicationEventPublisher events) {
+        this.events = events;
         this.registry = registry;
         this.lifecycles = lifecycles.stream()
                 .collect(Collectors.toMap(hooks -> hooks.moduleName(), Function.identity()));
@@ -55,6 +60,7 @@ public class ModuleManager {
         } else {
             lifecycle.ifPresent(hooks -> hooks.onInstall());
             dsl.insertInto(MODULE).columns(NAME, ENABLED).values(name, true).execute();
+            events.publishEvent(new ModuleInstalledEvent(name));
         }
         lifecycle.ifPresent(hooks -> hooks.onEnable());
     }

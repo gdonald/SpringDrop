@@ -1,0 +1,13 @@
+dependencies:
+  config:
+  - "system.site"
+data:
+  id: "recipe"
+  label: "Recipe"
+  description: "A dish and how to make it."
+  help: ""
+  titleLabel: "Title"
+  published: true
+  promoted: false
+  sticky: false
+  newRevision: true

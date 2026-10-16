@@ -1,0 +1,10 @@
+data:
+  id: "front_end_account_menu"
+  theme: "front-end"
+  region: "header"
+  plugin: "system_menu_block:account"
+  label: "User account menu"
+  labelDisplay: false
+  weight: 0
+  settings: {}
+  visibility: []

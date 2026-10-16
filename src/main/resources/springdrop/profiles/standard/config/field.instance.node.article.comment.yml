@@ -1,0 +1,13 @@
+data:
+  fieldName: "comment"
+  entityTypeId: "node"
+  bundle: "article"
+  label: "Comments"
+  description: ""
+  required: false
+  defaultValue: null
+  settings:
+    default_mode: "threaded"
+    anonymous: 0
+    preview: 1
+    depth: 0

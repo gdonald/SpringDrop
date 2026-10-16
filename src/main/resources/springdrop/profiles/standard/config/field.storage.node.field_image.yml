@@ -1,0 +1,6 @@
+data:
+  name: "field_image"
+  entityTypeId: "node"
+  type: "image"
+  cardinality: 1
+  settings: {}

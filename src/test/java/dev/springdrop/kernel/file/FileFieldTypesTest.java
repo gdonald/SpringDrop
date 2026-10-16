@@ -24,7 +24,7 @@ class FileFieldTypesTest {
     @Test
     void aFileFieldKeepsUploadsInPublicFilesAndAllowsTextFilesByDefault() {
         assertThat(FILE.id()).isEqualTo("file");
-        assertThat(FILE.defaultStorageSettings()).containsEntry(FileItem.URI_SCHEME, FileSchemes.PUBLIC);
+        assertThat(FILE.defaultStorageSettings()).doesNotContainKey(FileItem.URI_SCHEME);
         assertThat(FILE.defaultInstanceSettings()).containsEntry(FileItem.FILE_EXTENSIONS, "txt");
         assertThat(FILE.defaultWidget()).isEqualTo("file_generic");
         assertThat(FILE.defaultFormatter()).isEqualTo(FileFormatter.ID);
@@ -35,7 +35,7 @@ class FileFieldTypesTest {
     @Test
     void anImageFieldAllowsTheImageKindsTheSiteCanReadAndAsksForAlternativeText() {
         assertThat(IMAGE.id()).isEqualTo("image");
-        assertThat(IMAGE.defaultStorageSettings()).containsEntry(FileItem.URI_SCHEME, FileSchemes.PUBLIC);
+        assertThat(IMAGE.defaultStorageSettings()).doesNotContainKey(FileItem.URI_SCHEME);
         assertThat(IMAGE.defaultInstanceSettings())
                 .containsEntry(FileItem.FILE_EXTENSIONS, "png gif jpg jpeg")
                 .containsEntry(FileItem.ALT_FIELD_REQUIRED, true);

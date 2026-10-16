@@ -19,6 +19,9 @@ public interface FloodSettings {
     /** Messages sent through contact forms, counted per account, or per address for someone not signed in. */
     String CONTACT = "contact";
 
+    /** Requests sending a bearer token that is not valid, counted per address. */
+    String API_TOKEN_IP = "api.failed_token_ip";
+
     int USER_THRESHOLD = 5;
 
     Duration USER_WINDOW = Duration.ofHours(6);

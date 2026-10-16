@@ -1,0 +1,5 @@
+data:
+  id: "footer"
+  label: "Footer"
+  description: "The links at the bottom of every page."
+  locked: true

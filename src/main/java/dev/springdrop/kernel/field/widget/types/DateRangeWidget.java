@@ -71,7 +71,8 @@ public class DateRangeWidget implements FieldWidget {
 
         ElementType type = dateOnly ? ElementType.DATE : ElementType.DATETIME;
         Object shown = dateOnly ? value : LocalDateTimes.toInput(value, zone);
-        return FormElement.of(type, elementName(context, delta, endName)).label(label).value(shown);
+        return Widgets.firstDayOfWeek(FormElement.of(type, elementName(context, delta, endName)).label(label)
+                .value(shown), dateFormatService);
     }
 
     private String stored(WidgetContext context, String entered) {

@@ -44,6 +44,24 @@ public interface Permissions {
     /** Choosing which entity types are served over REST, by which methods, and in which formats. */
     String ADMINISTER_REST_RESOURCES = "administer rest resources";
 
+    /** Running the update routines of core and the modules. */
+    String ADMINISTER_SOFTWARE_UPDATES = "administer software updates";
+
+    /** Enabling and disabling the site's modules. */
+    String ADMINISTER_MODULES = "administer modules";
+
+    /** Seeing the administration toolbar at the top of each page. */
+    String ACCESS_TOOLBAR = "access toolbar";
+
+    /** Opening the overview pages of the administration sections. */
+    String ACCESS_ADMINISTRATION_PAGES = "access administration pages";
+
+    /** Exporting the site's configuration to the sync directory and importing it from there. */
+    String SYNCHRONIZE_CONFIGURATION = "synchronize configuration";
+
+    /** Creating and revoking one's own personal access tokens for the web service endpoints. */
+    String USE_API_TOKENS = "use api tokens";
+
     /** Reading the activity log and the status report. */
     String ACCESS_SITE_REPORTS = "access site reports";
 

@@ -56,6 +56,7 @@ public class ModuleDescriptorLoader {
                 (String) data.get("label"),
                 (String) data.get("description"),
                 String.valueOf(data.get("version")),
-                List.copyOf(dependencies));
+                List.copyOf(dependencies),
+                (String) data.get("package"));
     }
 }

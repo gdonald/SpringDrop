@@ -19,10 +19,9 @@ class MaintenanceModeFilterTest {
     private final ITemplateEngine templateEngine = Mockito.mock(ITemplateEngine.class);
 
     private MaintenanceModeFilter filterWith(boolean enabled, MaintenanceBypass bypass) {
-        return new MaintenanceModeFilter(
-                new MaintenanceProperties(enabled, "Down for maintenance"),
-                bypass,
-                templateEngine);
+        Maintenance maintenance = Mockito.mock(Maintenance.class);
+        when(maintenance.settings()).thenReturn(new MaintenanceSettings(enabled, "Down for maintenance"));
+        return new MaintenanceModeFilter(maintenance, bypass, templateEngine);
     }
 
     private final MaintenanceBypass denyAll = request -> false;

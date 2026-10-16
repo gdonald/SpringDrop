@@ -1,0 +1,6 @@
+data:
+  id: "administrator"
+  label: "Administrator"
+  weight: 3
+  permissions: []
+  administrator: true

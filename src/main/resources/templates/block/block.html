@@ -1,5 +1,6 @@
 <div class="block mb-3" th:id="'block-' + ${id}" th:attr="data-block-plugin=${plugin}"
      xmlns:th="http://www.thymeleaf.org">
+  <th:block th:utext="${slots['contextual']}"></th:block>
   <h2 class="h5" th:if="${labelDisplay}" th:text="${label}">Block</h2>
   <div class="block-content" th:utext="${children}">content</div>
 </div>

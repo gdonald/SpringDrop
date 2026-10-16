@@ -31,7 +31,8 @@ Each event is stamped with:
 ## Backends
 
 A `LogBackend` bean writes events somewhere. The config object `system.logging`
-(`LoggingSettings`) lists the backends in use by id, `database` alone by default. A
+(`LoggingSettings`) lists the backends in use by id, `database` alone by default, and the
+[logging settings](site-settings.md#logging-and-errors) choose them. A
 backend that fails to write is reported to the application log, and the others still get
 the event.
 
@@ -41,7 +42,8 @@ the event.
 | `syslog` | a syslog server over UDP, `springdrop.logging.syslog.host` and `.port` (`localhost:514` by default), as RFC 5424 messages from the `local0` facility with the event type as the message id |
 
 `DatabaseLog` also reads the table back: `page(filter, offset, limit)` newest first,
-`count(filter)`, `find(id)`, `types()`, and `clear()`. A `LogFilter` narrows to one type,
+`count(filter)`, `find(id)`, `types()`, `keepNewest(rows)`, and `clear()`. On each cron run,
+`DatabaseLogTrimmer` removes the oldest events beyond the number the logging settings keep. A `LogFilter` narrows to one type,
 one severity, or both.
 
 ## The log viewer

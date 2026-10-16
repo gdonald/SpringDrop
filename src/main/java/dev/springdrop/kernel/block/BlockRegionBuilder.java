@@ -3,6 +3,7 @@ package dev.springdrop.kernel.block;
 import dev.springdrop.kernel.block.plugins.MainContentBlock;
 import dev.springdrop.kernel.render.CacheMetadata;
 import dev.springdrop.kernel.render.Renderable;
+import dev.springdrop.kernel.theme.Contextual;
 import dev.springdrop.kernel.theme.Region;
 import dev.springdrop.kernel.theme.TemplateSuggestions;
 import dev.springdrop.kernel.theme.ThemeRegistry;
@@ -78,7 +79,8 @@ public class BlockRegionBuilder {
     /** One placement drawn through the block template, or nothing when its plugin has nothing to show. */
     public Optional<Renderable> render(BlockPlacement placement, BlockContext context) {
         return render(placement.instance(), suggestions(placement), context)
-                .map(block -> block.cacheTag(placement.cacheTag()));
+                .map(block -> block.cacheTag(placement.cacheTag())
+                        .child(Contextual.links(Contextual.BLOCK, placement.id())));
     }
 
     /**

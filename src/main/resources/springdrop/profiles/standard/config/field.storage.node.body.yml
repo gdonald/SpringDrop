@@ -1,0 +1,6 @@
+data:
+  name: "body"
+  entityTypeId: "node"
+  type: "text_with_summary"
+  cardinality: 1
+  settings: {}

@@ -33,7 +33,7 @@ public class DateFormatService {
 
     public String format(Instant instant, String formatId, ZoneId userZone) {
         DateFormat format = configStore.read(
-                "date_format." + formatId, DateFormat.class, DEFAULTS.getOrDefault(formatId, FALLBACK));
+                DateFormat.CONFIG_PREFIX + "." + formatId, DateFormat.class, DEFAULTS.getOrDefault(formatId, FALLBACK));
         ZoneId zone = (userZone != null) ? userZone : siteDefaultZone();
         return DateTimeFormatter.ofPattern(format.pattern(), Locale.ENGLISH).withZone(zone).format(instant);
     }
@@ -43,9 +43,11 @@ public class DateFormatService {
         return siteDefaultZone();
     }
 
+    public SiteDateSettings settings() {
+        return configStore.read(SiteDateSettings.CONFIG_NAME, SiteDateSettings.class, SiteDateSettings.DEFAULTS);
+    }
+
     private ZoneId siteDefaultZone() {
-        SiteDateSettings settings = configStore.read(
-                "system.date", SiteDateSettings.class, new SiteDateSettings("UTC"));
-        return ZoneId.of(settings.defaultTimezone());
+        return ZoneId.of(settings().defaultTimezone());
     }
 }

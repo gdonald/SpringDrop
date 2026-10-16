@@ -10,6 +10,11 @@ plugins {
     jacoco
 }
 
+// META-INF/build-info.properties, read as BuildProperties for the site's own version on the update status.
+springBoot {
+    buildInfo()
+}
+
 group = "dev.springdrop"
 version = "0.1-SNAPSHOT"
 
@@ -33,6 +38,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-database-postgresql")
+    // Config export and import read and write YAML; the version comes from the Jackson BOM.
+    implementation("tools.jackson.dataformat:jackson-dataformat-yaml")
     implementation(libs.jsoup)
     implementation(libs.owasp.html.sanitizer)
     implementation(libs.commonmark)

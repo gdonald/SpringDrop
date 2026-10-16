@@ -1,5 +1,6 @@
 package dev.springdrop.web;
 
+import dev.springdrop.kernel.entity.BaseFieldDefinition;
 import dev.springdrop.kernel.entity.EntityAccessHandler;
 import dev.springdrop.kernel.entity.EntityAccessManager;
 import dev.springdrop.kernel.entity.EntityData;
@@ -7,7 +8,6 @@ import dev.springdrop.kernel.entity.EntityValidationException;
 import dev.springdrop.kernel.entity.query.Condition;
 import dev.springdrop.kernel.entity.query.EntityQueryExecutor;
 import dev.springdrop.kernel.entity.query.Sort;
-import dev.springdrop.kernel.entity.BaseFieldDefinition;
 import dev.springdrop.kernel.field.FieldConfigManager;
 import dev.springdrop.kernel.field.FieldStorageConfig;
 import dev.springdrop.kernel.field.types.EntityReferenceFieldType;
@@ -15,11 +15,11 @@ import dev.springdrop.kernel.field.widget.FieldWidgetManager;
 import dev.springdrop.kernel.field.widget.WidgetContext;
 import dev.springdrop.kernel.file.FileFieldType;
 import dev.springdrop.kernel.file.FileItem;
-import dev.springdrop.kernel.file.FileSchemes;
 import dev.springdrop.kernel.file.FileService;
 import dev.springdrop.kernel.file.ImageFieldType;
 import dev.springdrop.kernel.file.ManagedFile;
 import dev.springdrop.kernel.file.UploadLimits;
+import dev.springdrop.kernel.file.UploadSchemes;
 import dev.springdrop.kernel.form.FormRenderer;
 import dev.springdrop.kernel.media.MediaEntityType;
 import dev.springdrop.kernel.media.MediaLibraryWidget;
@@ -84,11 +84,13 @@ public class MediaLibraryController {
     private final FormRenderer renderer;
     private final MediaLibraryWidget widget;
     private final long siteMaxFilesize;
+    private final UploadSchemes uploadSchemes;
 
     public MediaLibraryController(FieldWidgetManager widgets, FieldConfigManager fields, MediaTypeManager types,
             MediaService media, EntityQueryExecutor queries, EntityAccessManager access, FileService files,
-            FormRenderer renderer, MediaLibraryWidget widget,
+            FormRenderer renderer, MediaLibraryWidget widget, UploadSchemes uploadSchemes,
             @Value("${spring.servlet.multipart.max-file-size:32MB}") DataSize siteMaxFilesize) {
+        this.uploadSchemes = uploadSchemes;
         this.widgets = widgets;
         this.fields = fields;
         this.types = types;
@@ -203,8 +205,7 @@ public class MediaLibraryController {
             }
             try (InputStream content = upload.getInputStream()) {
                 stored = Optional.of(files.store(content, upload.getOriginalFilename(), upload.getSize(),
-                        String.valueOf(storage.settings().getOrDefault(FileItem.URI_SCHEME, FileSchemes.PUBLIC)),
-                        owner));
+                        uploadSchemes.schemeFor(storage.settings()), owner));
             }
             Map<String, Object> value = new LinkedHashMap<>();
             value.put(FileItem.TARGET_ID, stored.get().id());

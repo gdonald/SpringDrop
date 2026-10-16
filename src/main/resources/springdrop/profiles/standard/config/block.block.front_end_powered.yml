@@ -1,0 +1,10 @@
+data:
+  id: "front_end_powered"
+  theme: "front-end"
+  region: "footer"
+  plugin: "system_powered_by_block"
+  label: "Powered by SpringDrop"
+  labelDisplay: false
+  weight: 10
+  settings: {}
+  visibility: []

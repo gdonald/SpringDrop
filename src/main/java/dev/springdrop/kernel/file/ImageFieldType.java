@@ -61,7 +61,7 @@ public class ImageFieldType implements FieldType {
 
     @Override
     public Map<String, Object> defaultStorageSettings() {
-        return Map.of(FileItem.URI_SCHEME, FileSchemes.PUBLIC);
+        return Map.of();
     }
 
     @Override

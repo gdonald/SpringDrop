@@ -99,6 +99,23 @@ class EntityQueryIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void anEntityHoldingSeveralMatchingValuesIsFoundOnce() {
+        fieldConfigManager.findStorage("product", "labels")
+                .ifPresent(storage -> fieldConfigManager.deleteStorage("product", "labels"));
+        fieldConfigManager.createStorage(FieldStorageConfig.multiple("labels", "product", "string",
+                FieldStorageConfig.UNLIMITED));
+        fieldConfigManager.createInstance(FieldInstanceConfig.of("labels", "product", "stock", "Labels"));
+        entities.save(EntityData.of("product", 1L, "stock", "Anvil",
+                Map.of("category", "tools", "price", 100, "labels", List.of("forged", "heavy", "heavy-duty"))));
+
+        EntityQuery matching = query().condition(Condition.contains("labels", "heavy"));
+
+        assertThat(matching.ids()).containsExactly(1L);
+        assertThat(query().condition(Condition.contains("labels", "heavy")).count()).isEqualTo(1);
+        fieldConfigManager.deleteStorage("product", "labels");
+    }
+
+    @Test
     void filtersByABaseKey() {
         assertThat(query().condition(Condition.equal("label", "Balloon")).ids()).containsExactly(2L);
     }

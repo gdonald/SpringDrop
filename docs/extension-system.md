@@ -3,6 +3,30 @@
 How modules register and discover services in SpringDrop. This document grows as
 the extension system does.
 
+## Modules
+
+A module describes itself in `springdrop/modules/<name>.module.yml` on the classpath:
+
+```yaml
+name: blog
+label: Blog
+description: Posts listed newest first.
+version: "1.0"
+package: Content
+dependencies:
+  - content
+```
+
+`package` is the group the modules page lists it under, `Other` when left out. `ModuleManager`
+enables a module after the modules it depends on, and refuses to disable one an enabled module
+depends on.
+
+`/admin/modules` lists every module by package, ticked when enabled, with what it requires and
+what requires it, behind `administer modules`. Ticking a module enables it and unticking one
+disables it. Enabling a module whose dependencies are off asks first, naming each module that
+comes with it, and continuing enables them all. A module an enabled module depends on has its
+box disabled, and a submission unticking it anyway is refused with a message.
+
 ## Service collection
 
 To gather every implementation of a contract, depend on `ServiceCollector` and call
@@ -21,9 +45,9 @@ registry edit is needed.
 
 A module replaces a core service by declaring a bean of the same type marked
 `@Primary`, or by providing one that the core service annotates as conditional on its
-absence (`@ConditionalOnMissingBean`). Core ships `DefaultMaintenanceBypass`; the
-access system will provide a permission-backed `MaintenanceBypass` marked `@Primary`
-that supersedes it once roles exist.
+absence (`@ConditionalOnMissingBean`). Core's `PermissionMaintenanceBypass`, a
+`MaintenanceBypass` marked `@Primary`, supersedes `DefaultMaintenanceBypass`, which lets no
+one through.
 
 ## Hook-to-event mapping
 

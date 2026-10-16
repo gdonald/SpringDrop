@@ -1,0 +1,17 @@
+dependencies:
+  config:
+  - "taxonomy_vocabulary.tags"
+data:
+  fieldName: "field_tags"
+  entityTypeId: "node"
+  bundle: "article"
+  label: "Tags"
+  description: "Words that describe the article, separated by commas."
+  required: false
+  defaultValue: null
+  settings:
+    target_bundles:
+    - "tags"
+    widget: "entity_reference_autocomplete_tags"
+    auto_create: true
+    auto_create_bundle: "tags"

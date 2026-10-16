@@ -1,0 +1,5 @@
+data:
+  id: "main"
+  label: "Main navigation"
+  description: "The links a visitor finds their way around the site with."
+  locked: true

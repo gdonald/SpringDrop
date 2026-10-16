@@ -8,6 +8,7 @@ import dev.springdrop.kernel.role.RoleManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
@@ -51,9 +52,16 @@ public class AccountDetailsService implements UserDetailsService {
                     "Too many failed sign-ins for '" + username + "'. Try again later.");
         }
 
-        EntityData stored = accounts.loadByName(username).orElseThrow(
-                () -> new UsernameNotFoundException("No account named '" + username + "'"));
+        return principalOf(accounts.loadByName(username).orElseThrow(
+                () -> new UsernameNotFoundException("No account named '" + username + "'")));
+    }
 
+    /** The account with the id, as a signed-in principal holding its permissions. */
+    public Optional<AccountPrincipal> loadById(long id) {
+        return accounts.load(id).map(this::principalOf);
+    }
+
+    private AccountPrincipal principalOf(EntityData stored) {
         Map<String, Object> fields = stored.fields();
         List<String> held = rolesOf(fields);
         return new AccountPrincipal(

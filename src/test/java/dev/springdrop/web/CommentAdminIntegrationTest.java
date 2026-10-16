@@ -197,7 +197,9 @@ class CommentAdminIntegrationTest extends AbstractIntegrationTest {
                 .contains("Question", "Anonymous", "Spring schedule");
         assertThat(document.selectFirst("tr[data-comment=" + id + "] a[href=" + NodeEntityType.path(node) + "]"))
                 .isNotNull();
-        assertThat(document.select(".nav-link.active").text()).isEqualTo("Published comments");
+        assertThat(document.select("ul:not(.admin-local-tasks) .nav-link.active").text())
+                .isEqualTo("Published comments");
+        assertThat(document.select(".admin-local-tasks .nav-link.active").text()).isEqualTo("Comments");
         BootstrapAssertions.assertNoOutlineButtons(document);
         BootstrapAssertions.assertEditControlsAreButtons(document);
     }

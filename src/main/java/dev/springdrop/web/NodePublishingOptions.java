@@ -13,7 +13,7 @@ import dev.springdrop.kernel.menu.MenuLink;
 import dev.springdrop.kernel.menu.MenuManager;
 import dev.springdrop.kernel.menu.NodeMenuLinks;
 import dev.springdrop.kernel.node.NodeEntityType;
-import dev.springdrop.kernel.node.NodePermissions;
+import dev.springdrop.kernel.node.NodeFieldAccessRule;
 import dev.springdrop.kernel.security.Permissions;
 import dev.springdrop.kernel.user.AccountPrincipals;
 import dev.springdrop.kernel.user.UserAccount;
@@ -80,8 +80,7 @@ public class NodePublishingOptions {
     }
 
     public static boolean administersNodes(Authentication who) {
-        return AccountPrincipals.bypassesChecks(who) || holds(who, NodePermissions.ADMINISTER_NODES)
-                || holds(who, NodePermissions.BYPASS_NODE_ACCESS);
+        return NodeFieldAccessRule.administersNodes(who);
     }
 
     public static boolean administersMenus(Authentication who) {

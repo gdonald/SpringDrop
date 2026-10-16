@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- The status messages waiting for the person, shown once, at the top of a page that is not drawn in a theme layout. -->
+<div th:fragment="messages" class="container pt-3 status-messages"
+     th:if="${statusMessages != null and !statusMessages.all().isEmpty()}">
+  <div class="alert" role="status" th:each="message : ${statusMessages.all()}"
+       th:classappend="${message.alertClass}" th:text="${message.text}">Saved.</div>
+</div>
+</body>
+</html>

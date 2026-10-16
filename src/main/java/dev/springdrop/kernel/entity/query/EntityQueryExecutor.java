@@ -24,8 +24,9 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Turns an {@link EntityQuery} into SQL and runs it. A condition on a base key
- * reads the base table; a condition on a field joins that field's table, keyed
- * by entity and narrowed to the query's language and revision. A tagged query is
+ * reads the base table. A condition on a field looks for a matching row in that
+ * field's table, keyed by entity and narrowed to the query's language and
+ * revision, and a sort on a field joins that table. A tagged query is
  * published as an {@link EntityQueryAlterEvent} first, so the access system can
  * add conditions before anything runs.
  *
@@ -119,24 +120,34 @@ public class EntityQueryExecutor {
         return entityTypeManager.require(query.entityTypeId());
     }
 
+    /** Joins the tables of the fields the query sorts by, so their values can be ordered on. */
     private void joinFieldTables(SelectJoinStep<?> select, EntityType type, EntityQuery query) {
-        Set<String> translated = translatableFields.of(type.id());
-        for (String field : fieldProperties(type, query)) {
-            String table = fieldTable(type, field, query);
-            org.jooq.Condition on = DSL.field(DSL.name(table, FieldTableStorage.ENTITY_ID))
-                    .eq(baseField(type, type.keys().id()));
-            Field<Object> langcode = DSL.field(DSL.name(table, FieldTableStorage.LANGCODE));
-            if (type.translatable()) {
-                on = on.and(query.langcode() != null && translated.contains(field) ? langcode.eq(query.langcode())
-                        : langcode.eq(baseField(type, type.keys().langcode())));
-            } else if (query.langcode() != null) {
-                on = on.and(langcode.eq(query.langcode()));
-            }
-            if (query.revisionId() != null) {
-                on = on.and(DSL.field(DSL.name(table, FieldTableStorage.REVISION_ID)).eq(query.revisionId()));
-            }
-            select.leftJoin(DSL.table(DSL.name(table))).on(on);
+        for (String field : sortedFields(type, query)) {
+            select.leftJoin(DSL.table(DSL.name(fieldTable(type, field, query))))
+                    .on(fieldRowOf(type, query, field));
         }
+    }
+
+    /**
+     * The rows of a field's table holding the entity's values, in the language
+     * and revision the query reads.
+     */
+    private org.jooq.Condition fieldRowOf(EntityType type, EntityQuery query, String field) {
+        String table = fieldTable(type, field, query);
+        org.jooq.Condition on = DSL.field(DSL.name(table, FieldTableStorage.ENTITY_ID))
+                .eq(baseField(type, type.keys().id()));
+        Field<Object> langcode = DSL.field(DSL.name(table, FieldTableStorage.LANGCODE));
+        if (type.translatable()) {
+            on = on.and(query.langcode() != null && translatableFields.of(type.id()).contains(field)
+                    ? langcode.eq(query.langcode())
+                    : langcode.eq(baseField(type, type.keys().langcode())));
+        } else if (query.langcode() != null) {
+            on = on.and(langcode.eq(query.langcode()));
+        }
+        if (query.revisionId() != null) {
+            on = on.and(DSL.field(DSL.name(table, FieldTableStorage.REVISION_ID)).eq(query.revisionId()));
+        }
+        return on;
     }
 
     /** A query for one revision reads the revision tables; otherwise the current values. */
@@ -146,22 +157,11 @@ public class EntityQueryExecutor {
                 : FieldTableStorage.revisionTableName(type, field);
     }
 
-    private Set<String> fieldProperties(EntityType type, EntityQuery query) {
+    private Set<String> sortedFields(EntityType type, EntityQuery query) {
         Set<String> properties = new java.util.LinkedHashSet<>();
-        for (Condition condition : query.conditions()) {
-            collectProperties(condition, properties);
-        }
         query.sorts().forEach(sort -> properties.add(sort.property()));
         properties.removeIf(property -> isBaseColumn(type, property));
         return properties;
-    }
-
-    private static void collectProperties(Condition condition, Set<String> properties) {
-        switch (condition) {
-            case Condition.Comparison comparison -> properties.add(comparison.property());
-            case Condition.Group group -> group.conditions()
-                    .forEach(nested -> collectProperties(nested, properties));
-        }
     }
 
     private org.jooq.Condition whereClause(EntityType type, EntityQuery query) {
@@ -193,12 +193,17 @@ public class EntityQueryExecutor {
         return (group.conjunction() == Condition.Conjunction.OR) ? DSL.or(parts) : DSL.and(parts);
     }
 
+    /**
+     * A comparison of a base column reads the base table. A comparison of a
+     * field asks whether any of the entity's values matches, so an entity
+     * holding several values is found once.
+     */
     private org.jooq.Condition comparison(EntityType type, EntityQuery query, Condition.Comparison comparison) {
         boolean base = isBaseColumn(type, comparison.property());
         Field<Object> field = propertyField(type, query, comparison.property());
         Object value = base ? comparison.value() : jsonb(comparison.value());
 
-        return switch (comparison.operator()) {
+        org.jooq.Condition compared = switch (comparison.operator()) {
             case EQUAL -> field.eq(value);
             case NOT_EQUAL -> field.ne(value);
             case GREATER_THAN -> field.gt(value);
@@ -208,6 +213,13 @@ public class EntityQueryExecutor {
                     .toList());
             case CONTAINS -> textOf(type, query, comparison.property()).like("%" + comparison.value() + "%");
         };
+        if (base) {
+            return compared;
+        }
+        return DSL.exists(DSL.selectOne()
+                .from(DSL.table(DSL.name(fieldTable(type, comparison.property(), query))))
+                .where(fieldRowOf(type, query, comparison.property()))
+                .and(compared));
     }
 
     private Field<Object> propertyField(EntityType type, EntityQuery query, String property) {

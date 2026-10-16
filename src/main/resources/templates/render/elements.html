@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
+<div th:replace="~{fragments/toolbar :: toolbar}"></div>
+<div th:replace="~{fragments/messages :: messages}"></div>
+<div th:replace="~{fragments/help :: help}"></div>
 
 <div th:fragment="container" th:id="${attributes['id']}" th:classappend="${attributes['class']}"
      th:utext="${children}">children</div>

@@ -1,0 +1,10 @@
+data:
+  id: "page"
+  label: "Basic page"
+  description: "Static content, such as an About us page."
+  help: ""
+  titleLabel: "Title"
+  published: true
+  promoted: false
+  sticky: false
+  newRevision: true

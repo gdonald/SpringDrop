@@ -12,6 +12,7 @@ import dev.springdrop.kernel.layout.LayoutDisplayManager;
 import dev.springdrop.kernel.path.PathAliasManager;
 import dev.springdrop.kernel.render.Renderable;
 import dev.springdrop.kernel.theme.ThemeService;
+import dev.springdrop.kernel.theme.Contextual;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
@@ -172,9 +173,10 @@ public class NodeService {
         variables.put("viewMode", viewMode);
         variables.put("page", page);
         variables.put("published", Boolean.TRUE.equals(node.fields().get(BaseFieldDefinition.STATUS)));
-        return themes.entity(TEMPLATE_DIRECTORY, NodeEntityType.ID, node.bundle(), viewMode,
+        Renderable built = themes.entity(TEMPLATE_DIRECTORY, NodeEntityType.ID, node.bundle(), viewMode,
                         String.valueOf(node.id()), variables)
                 .child(content)
                 .cacheTag(cacheTag(node.id()));
+        return node.id() == null ? built : built.child(Contextual.links(Contextual.NODE, node.id()));
     }
 }

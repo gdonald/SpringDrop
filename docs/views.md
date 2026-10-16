@@ -60,9 +60,10 @@ A page display is drawn in the page chrome, titled with the display's title, or 
 view's label when the display has none. A path under `/admin` is drawn in the admin theme.
 A person the view's access plugin turns away is answered with 403.
 
-A feed display answers with RSS 2.0: the channel titled with the display's title, and an
-item per result with its label, a link to its page through its alias, and its creation
-date as `pubDate` when it has one.
+A feed display answers with RSS 2.0: the channel titled with the display's title and
+described with the feed description from [RSS publishing](site-settings.md#rss-publishing),
+and an item per result, at most the number of items RSS publishing sets, with its label, a
+link to its page through its alias, and its creation date as `pubDate` when it has one.
 
 `ViewMenuLinks` adds a menu link for each page display with a `menu_title`.
 

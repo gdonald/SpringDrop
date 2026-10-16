@@ -53,6 +53,15 @@ class ModuleDescriptorLoaderTest {
                 """));
 
         assertThat(info.dependencies()).isEmpty();
+        assertThat(info.packageName()).isEqualTo(ModuleInfo.OTHER);
+    }
+
+    @Test
+    void readsThePackageAModuleIsListedUnder() {
+        assertThat(loader.parse(yamlResource("name: blog\nlabel: Blog\ndescription: A blog.\nversion: \"1\"\n"
+                + "package: Content\n")).packageName()).isEqualTo("Content");
+        assertThat(loader.parse(yamlResource("name: blog\nlabel: Blog\ndescription: A blog.\nversion: \"1\"\n"
+                + "package: \" \"\n")).packageName()).isEqualTo(ModuleInfo.OTHER);
     }
 
     @Test

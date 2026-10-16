@@ -96,6 +96,34 @@ Each `Link` carries its children and whether it lies on the active trail. The `m
 partial draws a top-level link with children as a Bootstrap dropdown, and marks the
 active one.
 
+## The administration menu and toolbar
+
+The Administration menu has a link for each section, with the section's pages under it:
+
+| Section | Page | Pages under it |
+| --- | --- | --- |
+| Content | `/admin/content`, needing `access content overview` | Comments, Media, Custom block library |
+| Structure | `/admin/structure` | Block layout, Block types, Contact forms, Content types, Media types, Menus, Taxonomy, Views |
+| Configuration | `/admin/config` | the site, regional, language, text format, image, file, search, web service, performance, logging, maintenance, configuration synchronization, cron, action, workflow, and banned address pages |
+| People | `/admin/people` | Permissions |
+| Reports | `/admin/reports` | Recent log messages, Status report |
+
+`/admin` lists the sections, and `/admin/structure`, `/admin/config`, and `/admin/reports`
+list the pages under each. These overview pages need `access administration pages`, and each
+leaves out what the person may not open. The Structure, Configuration, and Reports links are
+expanded, since their pages only list the pages under them, and a section like that is left
+out when none of its pages may be reached.
+
+`AdminToolbar` draws the same sections across the top of each page, each a dropdown of its
+pages, collapsed behind a toggler on narrow screens, with the account's name and a sign-out
+shortcut. It is shown to the first account and anyone holding `access toolbar`. Standalone
+admin pages draw it with `~{fragments/toolbar :: toolbar}`, which brings Bootstrap's script,
+and the theme layouts with `~{fragments/toolbar :: toolbarMarkup}`, since they load the script
+themselves. A page showing the toolbar varies by account.
+
+The sign-out shortcut opens `/user/logout`, which asks before signing out with a form posted to
+the same path.
+
 ## Breadcrumbs
 
 `BreadcrumbBuilder.build(path)` gives the trail to a page. A page that hangs in a menu

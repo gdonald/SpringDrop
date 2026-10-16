@@ -5,6 +5,7 @@ import dev.springdrop.kernel.cache.CacheTags;
 import dev.springdrop.kernel.language.LanguageConfig;
 import dev.springdrop.kernel.language.LanguageManager;
 import dev.springdrop.kernel.locale.Translator;
+import dev.springdrop.kernel.menu.AdminToolbar;
 import dev.springdrop.kernel.menu.MenuConfig;
 import dev.springdrop.kernel.menu.MenuTreeBuilder;
 import dev.springdrop.kernel.render.Attachments;
@@ -15,12 +16,14 @@ import dev.springdrop.kernel.render.RenderedPage;
 import dev.springdrop.kernel.render.Shell;
 import dev.springdrop.kernel.site.SiteInformation;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.util.HtmlUtils;
 
 /**
@@ -61,14 +64,18 @@ public class PageRenderer {
     private final RenderService renderer;
     private final BigPipe bigPipe;
     private final LanguageManager languages;
+    private final AdminToolbar toolbar;
+    private final Messenger messenger;
 
     public PageRenderer(ThemeService themes, ThemeRegistry registry, RenderService renderer, BigPipe bigPipe,
-            LanguageManager languages) {
+            LanguageManager languages, AdminToolbar toolbar, Messenger messenger) {
+        this.messenger = messenger;
         this.themes = themes;
         this.registry = registry;
         this.renderer = renderer;
         this.bigPipe = bigPipe;
         this.languages = languages;
+        this.toolbar = toolbar;
     }
 
     public RenderedPage render(PageChrome chrome, Renderable content) {
@@ -80,24 +87,39 @@ public class PageRenderer {
         variables.put("breadcrumbs", chrome.breadcrumbs());
         variables.put("tabs", chrome.tabs());
         variables.put("localActions", chrome.localActions());
-        variables.put("messages", chrome.messages());
+        List<StatusMessage> messages = new ArrayList<>(chrome.messages());
+        messages.addAll(messenger.drain());
+        variables.put("messages", messages);
         variables.put("pager", chrome.pager().orElse(Pager.NONE));
         variables.put("partials", partialTemplates());
         LanguageConfig language = languages.current();
         variables.put("langcode", language.id());
         variables.put("direction", language.direction());
+        AdminToolbar.View shownToolbar = toolbar.view(currentPath());
+        variables.put("toolbar", shownToolbar);
 
         Renderable layout = themes.build(LAYOUT_DIRECTORY, TemplateSuggestions.of(LAYOUT), variables);
         for (Map.Entry<String, Renderable> region : chrome.regions().entrySet()) {
             layout = layout.child(region.getValue().inSlot(region.getKey()));
         }
-        Shell shell = renderer.renderShell(layout.child(content).cacheability(chromeCacheability(chrome)));
+        CacheMetadata cacheability = chromeCacheability(messages);
+        if (shownToolbar.shown()) {
+            cacheability = cacheability.merge(MenuTreeBuilder.cacheability(MenuConfig.ADMIN))
+                    .withContext(CacheContexts.USER);
+        }
+        Shell shell = renderer.renderShell(layout.child(content).cacheability(cacheability));
         RenderedPage page = finish(shell);
         if (chrome.pageCacheable()
                 && RequestContextHolder.getRequestAttributes() instanceof RequestAttributes request) {
             request.setAttribute(PAGE_ATTRIBUTE, new Drawn(shell, page), RequestAttributes.SCOPE_REQUEST);
         }
         return page;
+    }
+
+    /** The path the current request asked for, or the home page outside a request. */
+    private static String currentPath() {
+        return RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes request
+                ? request.getRequest().getRequestURI() : "/";
     }
 
     /**
@@ -116,12 +138,12 @@ public class PageRenderer {
      * menu the primary navigation is drawn from. Status messages are for one
      * request, so a page showing them may not be cached.
      */
-    static CacheMetadata chromeCacheability(PageChrome chrome) {
+    static CacheMetadata chromeCacheability(List<StatusMessage> messages) {
         CacheMetadata cache = MenuTreeBuilder.cacheability(MenuConfig.MAIN)
                 .withTag(CacheTags.config(SiteInformation.CONFIG_NAME))
                 .withContext(CacheContexts.LANGUAGES)
                 .withTag(Translator.CACHE_TAG);
-        return chrome.messages().isEmpty() ? cache : cache.withMaxAge(Duration.ZERO);
+        return messages.isEmpty() ? cache : cache.withMaxAge(Duration.ZERO);
     }
 
     /**

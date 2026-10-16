@@ -9,12 +9,15 @@ import dev.springdrop.kernel.entity.EntityKind;
 import dev.springdrop.kernel.entity.EntityType;
 import dev.springdrop.kernel.entity.EntityTypeManager;
 import dev.springdrop.kernel.entity.EntityValidationException;
+import dev.springdrop.kernel.entity.FieldAccessManager;
+import dev.springdrop.kernel.entity.FieldAccessRule;
 import dev.springdrop.kernel.rest.EntityRepresentation;
 import dev.springdrop.kernel.rest.RestEntityWriter;
 import dev.springdrop.kernel.rest.RestFieldValues;
 import dev.springdrop.kernel.rest.RestResourceConfig;
 import dev.springdrop.kernel.rest.RestResourceManager;
 import dev.springdrop.kernel.rest.RestSerializer;
+import dev.springdrop.kernel.security.ApiResponses;
 import dev.springdrop.kernel.user.AccountPrincipals;
 import java.net.URI;
 import java.util.LinkedHashMap;
@@ -22,10 +25,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,10 +46,13 @@ import tools.jackson.databind.ObjectMapper;
  * Serves content entities over REST, for the entity types and methods the
  * REST resources enable. Each request needs the method's permission and the
  * entity access the method stands for: view to read, create to add, update
- * to change, and delete to remove. A response is in the format the
+ * to change, and delete to remove. A response leaves out the fields the
+ * person may not view, and a body naming a field they may not edit is
+ * refused. A response is in the format the
  * {@code _format} parameter names, JSON unless it names another the resource
  * enables, and a request body is read in the format its content type names.
- * A refusal is answered as a JSON object with a {@code message}.
+ * A refusal is answered as a JSON object with a {@code message}, and one for
+ * someone not signed in as a 401 naming the bearer scheme.
  */
 @Controller
 public class EntityRestController {
@@ -57,17 +65,19 @@ public class EntityRestController {
     private final EntityTypeManager entityTypes;
     private final EntityCrudService entities;
     private final EntityAccessManager access;
+    private final FieldAccessManager fieldAccess;
     private final RestFieldValues fieldValues;
     private final RestEntityWriter writer;
     private final ObjectMapper objectMapper;
 
     public EntityRestController(RestResourceManager resources, EntityTypeManager entityTypes, EntityCrudService entities,
-            EntityAccessManager access, RestFieldValues fieldValues, RestEntityWriter writer,
-            ObjectMapper objectMapper) {
+            EntityAccessManager access, FieldAccessManager fieldAccess, RestFieldValues fieldValues,
+            RestEntityWriter writer, ObjectMapper objectMapper) {
         this.resources = resources;
         this.entityTypes = entityTypes;
         this.entities = entities;
         this.access = access;
+        this.fieldAccess = fieldAccess;
         this.fieldValues = fieldValues;
         this.writer = writer;
         this.objectMapper = objectMapper;
@@ -100,13 +110,14 @@ public class EntityRestController {
 
     @GetMapping(PATH + "/{entityType}/{id}")
     public ResponseEntity<String> read(@PathVariable String entityType, @PathVariable long id,
-            @RequestParam(name = FORMAT, defaultValue = "json") String format, Authentication who) {
+            @RequestParam(name = FORMAT, defaultValue = "json") String format) {
         return answer(() -> {
+            Authentication who = currentAuthentication();
             RestResourceConfig resource = resource(entityType, RestResourceConfig.GET, who);
             RestSerializer serializer = responseSerializer(resource, format);
             EntityData entity = found(entityType, id);
             permitted(entityType, entity, EntityAccessHandler.VIEW, who);
-            return body(HttpStatus.OK, serializer, entity);
+            return body(HttpStatus.OK, serializer, visible(entity, who));
         });
     }
 
@@ -114,8 +125,9 @@ public class EntityRestController {
     public ResponseEntity<String> create(@PathVariable String entityType,
             @RequestParam(name = FORMAT, defaultValue = "json") String format,
             @RequestHeader(name = "Content-Type", defaultValue = "") String contentType,
-            @RequestBody(required = false) String body, Authentication who) {
+            @RequestBody(required = false) String body) {
         return answer(() -> {
+            Authentication who = currentAuthentication();
             RestResourceConfig resource = resource(entityType, RestResourceConfig.POST, who);
             RestSerializer responses = responseSerializer(resource, format);
             EntityRepresentation submitted = read(resource, contentType, body);
@@ -125,6 +137,7 @@ public class EntityRestController {
                 throw new Refused(new Refusal(HttpStatus.UNPROCESSABLE_CONTENT, "The bundle is required."));
             }
             permitted(entityType, bundle == null ? entityType : bundle, EntityAccessHandler.CREATE, who);
+            editable(type, EntityData.of(entityType, null, bundle, "", Map.of()), submitted.fields(), who);
             Map<String, Object> values = new LinkedHashMap<>(writable(type, bundle, submitted.fields()));
             if (type.baseFields().stream().anyMatch(field -> field.name().equals(BaseFieldDefinition.OWNER))) {
                 values.put(BaseFieldDefinition.OWNER, CurrentAccount.id());
@@ -134,7 +147,7 @@ public class EntityRestController {
                     .withLangcode(submitted.langcode() == null ? EntityData.DEFAULT_LANGCODE : submitted.langcode()));
             return ResponseEntity.created(URI.create(entityPath(entityType, saved.id())))
                     .contentType(MediaType.parseMediaType(responses.mediaType()))
-                    .body(responses.serialize(EntityRepresentation.of(saved)));
+                    .body(responses.serialize(EntityRepresentation.of(visible(saved, who))));
         });
     }
 
@@ -142,25 +155,28 @@ public class EntityRestController {
     public ResponseEntity<String> update(@PathVariable String entityType, @PathVariable long id,
             @RequestParam(name = FORMAT, defaultValue = "json") String format,
             @RequestHeader(name = "Content-Type", defaultValue = "") String contentType,
-            @RequestBody(required = false) String body, Authentication who) {
+            @RequestBody(required = false) String body) {
         return answer(() -> {
+            Authentication who = currentAuthentication();
             RestResourceConfig resource = resource(entityType, RestResourceConfig.PATCH, who);
             RestSerializer responses = responseSerializer(resource, format);
             EntityRepresentation submitted = read(resource, contentType, body);
             EntityData entity = found(entityType, id);
             permitted(entityType, entity, EntityAccessHandler.UPDATE, who);
+            EntityType type = entityTypes.require(entityType);
+            editable(type, entity, submitted.fields(), who);
             Map<String, Object> values = new LinkedHashMap<>(entity.fields());
-            values.putAll(writable(entityTypes.require(entityType), entity.bundle(), submitted.fields()));
+            values.putAll(writable(type, entity.bundle(), submitted.fields()));
             EntityData changed = new EntityData(entityType, entity.id(), entity.uuid(), entity.bundle(),
                     submitted.label() == null ? entity.label() : submitted.label(), entity.langcode(), null, values);
-            return body(HttpStatus.OK, responses, save(changed));
+            return body(HttpStatus.OK, responses, visible(save(changed), who));
         });
     }
 
     @DeleteMapping(PATH + "/{entityType}/{id}")
-    public ResponseEntity<String> delete(@PathVariable String entityType, @PathVariable long id,
-            Authentication who) {
+    public ResponseEntity<String> delete(@PathVariable String entityType, @PathVariable long id) {
         return answer(() -> {
+            Authentication who = currentAuthentication();
             resource(entityType, RestResourceConfig.DELETE, who);
             EntityData entity = found(entityType, id);
             permitted(entityType, entity, EntityAccessHandler.DELETE, who);
@@ -178,9 +194,22 @@ public class EntityRestController {
             if (!refused.refusal.errors().isEmpty()) {
                 body.put("errors", refused.refusal.errors());
             }
-            return ResponseEntity.status(refused.refusal.status()).contentType(MediaType.APPLICATION_JSON)
-                    .body(objectMapper.writeValueAsString(body));
+            boolean signInWanted = refused.refusal.status() == HttpStatus.FORBIDDEN
+                    && ApiResponses.anonymous(currentAuthentication());
+            ResponseEntity.BodyBuilder response = signInWanted
+                    ? ResponseEntity.status(HttpStatus.UNAUTHORIZED).header(HttpHeaders.WWW_AUTHENTICATE,
+                            ApiResponses.CHALLENGE)
+                    : ResponseEntity.status(refused.refusal.status());
+            return response.contentType(MediaType.APPLICATION_JSON).body(objectMapper.writeValueAsString(body));
         }
+    }
+
+    /**
+     * The person making the request, read from the security context, which
+     * holds the anonymous visitor and their role's permissions too.
+     */
+    private static Authentication currentAuthentication() {
+        return SecurityContextHolder.getContext().getAuthentication();
     }
 
     /** The resource, when it enables the method and the person holds the method's permission. */
@@ -227,6 +256,26 @@ public class EntityRestController {
         if (!access.check(entityType, entity, operation, who).allowed()) {
             throw new Refused(new Refusal(HttpStatus.FORBIDDEN, "You may not " + operation + " this " + entityType
                     + "."));
+        }
+    }
+
+    /** The entity without the fields the person may not view. */
+    private EntityData visible(EntityData entity, Authentication who) {
+        EntityType type = entityTypes.require(entity.entityType());
+        Map<String, Object> shown = new LinkedHashMap<>();
+        entity.fields().forEach((name, value) -> {
+            if (fieldAccess.may(type, name, FieldAccessRule.VIEW, entity, who)) {
+                shown.put(name, value);
+            }
+        });
+        return entity.withFields(shown);
+    }
+
+    private void editable(EntityType type, EntityData entity, Map<String, Object> submitted, Authentication who) {
+        for (String name : submitted.keySet()) {
+            if (!fieldAccess.may(type, name, FieldAccessRule.EDIT, entity, who)) {
+                throw new Refused(new Refusal(HttpStatus.FORBIDDEN, "You may not edit the field " + name + "."));
+            }
         }
     }
 

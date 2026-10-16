@@ -1,0 +1,12 @@
+data:
+  fieldName: "body"
+  entityTypeId: "node"
+  bundle: "article"
+  label: "Body"
+  description: ""
+  required: false
+  defaultValue: null
+  settings:
+    display_summary: true
+    required_summary: false
+    widget: "text_textarea_with_summary"

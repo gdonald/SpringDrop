@@ -9,6 +9,7 @@ import dev.springdrop.kernel.entity.BaseFieldDefinition;
 import dev.springdrop.kernel.entity.EntityTypeManager;
 import dev.springdrop.kernel.path.PathAliasManager;
 import dev.springdrop.kernel.render.Renderable;
+import dev.springdrop.kernel.site.RssSettings;
 import dev.springdrop.kernel.site.SiteInformation;
 import dev.springdrop.kernel.theme.PageChrome;
 import dev.springdrop.kernel.views.ResultRow;
@@ -96,7 +97,9 @@ public class ViewPageController {
         }
         String title = shown.title().isEmpty() ? config.label() : shown.title();
         String html = bulkFormFor(config, display, rendered, path, request) + rendered.html();
-        return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(pages.render(PageChrome.of(site.name(), title),
+        PageChrome chrome = PageChrome.of(site.name(), title).withTabs(AdminLocalTasks.tabsFor(path))
+                .withLocalActions(AdminLocalTasks.actionsFor(path));
+        return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(pages.render(chrome,
                 Renderable.of("markup").with("value", html), BlockContext.of(path, title)).html());
     }
 
@@ -116,8 +119,9 @@ public class ViewPageController {
     }
 
     private String feed(SiteInformation site, ViewDisplay display, List<ResultRow> rows, String path) {
+        RssSettings rss = configStore.read(RssSettings.CONFIG_NAME, RssSettings.class, RssSettings.DEFAULTS);
         StringBuilder items = new StringBuilder();
-        for (ResultRow row : rows) {
+        for (ResultRow row : rows.subList(0, Math.min(rows.size(), rss.items()))) {
             String link = site.url() + aliases.outbound(entityTypes.require(row.entity().entityType())
                     .canonicalPath(row.entity().id()));
             items.append("<item><title>").append(HtmlUtils.htmlEscape(row.entity().label())).append("</title><link>")
@@ -132,7 +136,8 @@ public class ViewPageController {
         }
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?><rss version=\"2.0\"><channel><title>"
                 + HtmlUtils.htmlEscape(display.title()) + "</title><link>" + HtmlUtils.htmlEscape(site.url() + path)
-                + "</link><description>" + HtmlUtils.htmlEscape(site.name()) + "</description>" + items
+                + "</link><description>" + HtmlUtils.htmlEscape(rss.description().isBlank() ? site.name()
+                        : rss.description()) + "</description>" + items
                 + "</channel></rss>";
     }
 }

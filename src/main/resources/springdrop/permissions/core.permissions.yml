@@ -56,3 +56,28 @@ administer rest resources:
   title: Administer REST resources
   description: Choose which content is served over REST, by which methods, and in which formats.
   restricted: true
+use api tokens:
+  title: Use API tokens
+  description: Create and revoke personal access tokens that sign in to the REST and JSON:API endpoints as your account.
+synchronize configuration:
+  title: Synchronize configuration
+  description: Export the site's configuration to the sync directory and import it from there.
+  restricted: true
+access site in maintenance mode:
+  title: Use the site in maintenance mode
+  description: Browse and work on the site while it is in maintenance mode.
+  restricted: true
+access toolbar:
+  title: Use the administration toolbar
+  description: See the toolbar of administration sections, with account and sign-out shortcuts, at the top of each page.
+access administration pages:
+  title: Use the administration pages
+  description: Open the overview pages of the administration sections, which list the pages in each.
+administer modules:
+  title: Administer modules
+  description: Enable and disable the site's modules.
+  restricted: true
+administer software updates:
+  title: Administer software updates
+  description: Run the update routines of core and the site's modules.
+  restricted: true

@@ -15,8 +15,9 @@ import java.util.Map;
 /**
  * A reference to an uploaded file, with a description and whether the file is
  * listed when the entity is shown. Uploads are kept in the scheme the storage's
- * {@code uri_scheme} setting names, and bounded by the instance's allowed
- * extensions and largest size.
+ * {@code uri_scheme} setting names, or the site's default download method when
+ * it names none, and bounded by the instance's allowed extensions and largest
+ * size.
  */
 @SpringDropPlugin(id = FileFieldType.ID, type = FieldType.class)
 public class FileFieldType implements FieldType {
@@ -53,7 +54,7 @@ public class FileFieldType implements FieldType {
 
     @Override
     public Map<String, Object> defaultStorageSettings() {
-        return Map.of(FileItem.URI_SCHEME, FileSchemes.PUBLIC);
+        return Map.of();
     }
 
     @Override

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- The administration toolbar for a page that loads no Bootstrap script of its own: the markup and the script
+     its dropdowns and toggler need. A theme layout, which loads the script already, draws toolbarMarkup alone. -->
+<th:block th:fragment="toolbar" th:if="${toolbar != null and toolbar.shown()}">
+  <nav th:replace="~{fragments/toolbar :: toolbarMarkup}"></nav>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</th:block>
+
+<!-- Each section the person may reach, collapsed behind a toggler on narrow screens. -->
+<nav th:fragment="toolbarMarkup" th:if="${toolbar != null and toolbar.shown()}"
+     class="navbar navbar-expand-lg navbar-dark bg-dark admin-toolbar" aria-label="Administration">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/admin">Manage</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#admin-toolbar-sections"
+            aria-controls="admin-toolbar-sections" aria-expanded="false" aria-label="Toggle administration menu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="admin-toolbar-sections">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item" th:each="section : ${toolbar.sections()}"
+            th:classappend="${section.children.isEmpty()} ? '' : 'dropdown'"
+            th:attr="data-section=${section.link.id}">
+          <a th:if="${section.children.isEmpty()}" class="nav-link" th:href="${section.link.url}"
+             th:text="${section.link.title}" th:classappend="${section.inActiveTrail} ? 'active' : ''">Content</a>
+          <a th:unless="${section.children.isEmpty()}" class="nav-link dropdown-toggle" href="#" role="button"
+             data-bs-toggle="dropdown" aria-expanded="false" th:text="${section.link.title}"
+             th:classappend="${section.inActiveTrail} ? 'active' : ''">Structure</a>
+          <ul th:unless="${section.children.isEmpty()}" class="dropdown-menu">
+            <li><a class="dropdown-item fw-semibold" th:href="${section.link.url}"
+                   th:text="${section.link.title}">Structure</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li th:each="page : ${section.children}" th:attr="data-link=${page.link.id}">
+              <a class="dropdown-item" th:href="${page.link.url}" th:text="${page.link.title}">Menus</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+      <ul class="navbar-nav">
+        <li class="nav-item"><span class="navbar-text me-3 admin-toolbar-account"
+                                   th:text="${toolbar.accountName()}">admin</span></li>
+        <li class="nav-item"><a class="nav-link admin-toolbar-logout" th:href="${toolbar.logoutPath()}">Sign
+          out</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+</body>
+</html>

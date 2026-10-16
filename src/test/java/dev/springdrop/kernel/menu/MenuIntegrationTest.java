@@ -414,7 +414,7 @@ class MenuIntegrationTest extends AbstractIntegrationTest {
     @Test
     void aPageInNoMenuIsNamedFromTheRoutesAlongItsPath() {
         assertThat(breadcrumbs.build("/admin/people/permissions")).extracting(Link::label)
-                .containsExactly("Home", "People", "Permissions");
+                .containsExactly("Home", "Administration", "People", "Permissions");
     }
 
     @Test

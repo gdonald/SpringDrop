@@ -1,0 +1,6 @@
+data:
+  name: "comment"
+  entityTypeId: "node"
+  type: "comment"
+  cardinality: 1
+  settings: {}

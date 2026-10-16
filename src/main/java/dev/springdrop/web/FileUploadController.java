@@ -4,11 +4,11 @@ import dev.springdrop.kernel.field.widget.FieldWidget;
 import dev.springdrop.kernel.field.widget.FieldWidgetManager;
 import dev.springdrop.kernel.field.widget.WidgetContext;
 import dev.springdrop.kernel.file.FileItem;
-import dev.springdrop.kernel.file.FileSchemes;
 import dev.springdrop.kernel.file.FileService;
 import dev.springdrop.kernel.file.FileWidget;
 import dev.springdrop.kernel.file.ManagedFile;
 import dev.springdrop.kernel.file.UploadLimits;
+import dev.springdrop.kernel.file.UploadSchemes;
 import dev.springdrop.kernel.form.FormRenderer;
 import dev.springdrop.kernel.user.AccountPrincipal;
 import java.io.IOException;
@@ -42,8 +42,11 @@ public class FileUploadController {
     private final FieldWidgetManager widgets;
     private final FileService files;
     private final FormRenderer renderer;
+    private final UploadSchemes uploadSchemes;
 
-    public FileUploadController(FieldWidgetManager widgets, FileService files, FormRenderer renderer) {
+    public FileUploadController(FieldWidgetManager widgets, FileService files, FormRenderer renderer,
+            UploadSchemes uploadSchemes) {
+        this.uploadSchemes = uploadSchemes;
         this.widgets = widgets;
         this.files = files;
         this.renderer = renderer;
@@ -74,8 +77,7 @@ public class FileUploadController {
             return refused(HttpStatus.UNPROCESSABLE_CONTENT, refusal.get());
         }
 
-        String scheme = String.valueOf(context.storage().settings().getOrDefault(FileItem.URI_SCHEME,
-                FileSchemes.PUBLIC));
+        String scheme = uploadSchemes.schemeFor(context.storage().settings());
         ManagedFile stored;
         try (InputStream content = upload.getInputStream()) {
             stored = files.store(content, upload.getOriginalFilename(), size, scheme, account.id());

@@ -1,0 +1,32 @@
+dependencies:
+  config:
+  - "field.instance.node.article.body"
+  - "field.instance.node.article.field_image"
+  - "field.instance.node.article.field_tags"
+  - "field.instance.node.article.comment"
+data:
+  entityTypeId: "node"
+  bundle: "article"
+  mode: "default"
+  slots:
+    body:
+      fieldName: "body"
+      handler: "text_textarea_with_summary"
+      weight: 1
+      settings: {}
+    field_image:
+      fieldName: "field_image"
+      handler: "image_image"
+      weight: 2
+      settings: {}
+    field_tags:
+      fieldName: "field_tags"
+      handler: "entity_reference_autocomplete_tags"
+      weight: 3
+      settings: {}
+    comment:
+      fieldName: "comment"
+      handler: "comment_default"
+      weight: 20
+      settings: {}
+  disabled: []

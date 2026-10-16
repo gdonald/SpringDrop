@@ -1,0 +1,10 @@
+data:
+  id: "article"
+  label: "Article"
+  description: "Time-sensitive content like news, press releases, or blog posts."
+  help: ""
+  titleLabel: "Title"
+  published: true
+  promoted: true
+  sticky: false
+  newRevision: true

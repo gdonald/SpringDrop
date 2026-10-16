@@ -1,10 +1,15 @@
 package dev.springdrop.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import dev.springdrop.kernel.security.Permissions;
+import dev.springdrop.kernel.file.FileSystemSettings;
+import dev.springdrop.kernel.config.ConfigStore;
 import dev.springdrop.kernel.entity.BundleDefinition;
 import dev.springdrop.kernel.entity.BundleManager;
 import dev.springdrop.kernel.entity.EntityCrudService;
@@ -170,6 +175,30 @@ class FileUploadIntegrationTest extends AbstractIntegrationTest {
 
     private long fileCount() {
         return queries.query(FileEntityType.ID).count();
+    }
+
+    @Autowired
+    private ConfigStore config;
+
+    @Test
+    void switchingTheDefaultDownloadMethodRoutesNewUploadsAccordingly() throws Exception {
+        RequestPostProcessor administrator = user("admin").authorities(
+                new SimpleGrantedAuthority(Permissions.ADMINISTER_SITE_CONFIGURATION));
+        try {
+            long before = Long.parseLong(Jsoup.parseBodyFragment(upload("photos", "before.png", png(40, 30), "0",
+                    edith()).getContentAsString()).selectFirst("input[name=photos[0]:target_id]").val());
+            assertThat(files.find(before).orElseThrow().scheme()).isEqualTo(FileSchemes.PUBLIC);
+
+            mockMvc.perform(post(FileSystemController.PATH).param(FileSystemController.DEFAULT_SCHEME,
+                    FileSchemes.PRIVATE).with(csrf()).with(administrator));
+
+            long after = Long.parseLong(Jsoup.parseBodyFragment(upload("photos", "after.png", png(40, 30), "0",
+                    edith()).getContentAsString()).selectFirst("input[name=photos[0]:target_id]").val());
+            assertThat(files.find(after).orElseThrow().scheme()).isEqualTo(FileSchemes.PRIVATE);
+            assertThat(files.find(before).orElseThrow().scheme()).isEqualTo(FileSchemes.PUBLIC);
+        } finally {
+            config.delete(FileSystemSettings.CONFIG_NAME);
+        }
     }
 
     @Test

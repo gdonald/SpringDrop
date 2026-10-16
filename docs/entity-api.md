@@ -164,8 +164,9 @@ not drag its reference graph along.
 ## Queries
 
 `EntityQueryExecutor.query(typeId)` builds a query a clause at a time. Conditions name
-base keys and field names alike, and the executor joins whatever tables the named
-properties live in:
+base keys and field names alike. A condition on a field matches an entity when any of its
+values matches, so an entity holding several matching values is found and counted once.
+A sort on a field joins that field's table:
 
 ```java
 List<Object> ids = queries.query("node")
@@ -197,6 +198,24 @@ runs, so the access system and modules can add conditions to it, the way Drupal'
 and returns an `AccessResult`, so the decision carries the cache contexts and tags it
 was made from. `DefaultEntityAccessHandler` grants to a user holding
 `administer <entity type>`; a type with rules of its own names its own handler.
+
+### Field access
+
+`FieldAccessManager` decides whether someone may `view` or `edit` one field of an entity,
+the way Drupal's `hook_entity_field_access` does. Every `FieldAccessRule` bean is asked,
+and the first that forbids settles it. A field no rule forbids is open, since whoever
+reached the entity already passed its entity access. The first account is asked about like
+anyone else. REST and JSON:API leave out of a response the fields the person may not view,
+and refuse a write naming a field they may not edit.
+
+| Rule | Field | Forbidden |
+| --- | --- | --- |
+| `NodeFieldAccessRule` | node `status`, `promote`, `sticky` | editing, without `administer nodes` or `bypass node access` |
+| `ModerationFieldAccessRule` | node `moderation_state` | editing, always |
+| `ModerationFieldAccessRule` | node `status` | editing, when a workflow moderates the content type |
+| `UserFieldAccessRule` | user `password_hash` | viewing and editing, always |
+| `UserFieldAccessRule` | user `mail` | viewing and editing, except by the account itself and those with `administer users` |
+| `UserFieldAccessRule` | user `status`, `roles` | editing, without `administer users` |
 
 ## Validation
 

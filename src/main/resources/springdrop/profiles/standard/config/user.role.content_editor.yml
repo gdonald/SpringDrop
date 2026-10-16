@@ -1,0 +1,18 @@
+data:
+  id: "content_editor"
+  label: "Content editor"
+  weight: 2
+  permissions:
+  - "access content overview"
+  - "view own unpublished content"
+  - "create article content"
+  - "edit own article content"
+  - "delete own article content"
+  - "view article revisions"
+  - "revert article revisions"
+  - "create page content"
+  - "edit own page content"
+  - "delete own page content"
+  - "view page revisions"
+  - "revert page revisions"
+  administrator: false

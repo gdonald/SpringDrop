@@ -25,7 +25,10 @@ Each enabled method adds a permission, `restful <method> entity:<type>`, such as
 
 A request needs the method's permission, and the entity access the method stands for:
 view to read, create (asked about the bundle) to add, update to change, and delete to
-remove. The first account needs neither. A response is in the format `?_format=` names,
+remove. The first account needs neither. A response leaves out the fields the person may
+not view, and a body naming a field they may not edit is refused, by the field access
+rules in [the entity API](entity-api.md#field-access). A client signs in with a session
+cookie or a bearer token, as [API authentication](api-authentication.md) describes. A response is in the format `?_format=` names,
 JSON by default, and a request body is read in the enabled format whose media type its
 `Content-Type` names.
 
@@ -42,7 +45,8 @@ A refusal is a JSON object with a `message`:
 | Status | When |
 | --- | --- |
 | 400 | the body is not the format |
-| 403 | the method's permission or the entity access is missing |
+| 401 | someone not signed in lacks the method's permission or the entity access |
+| 403 | the method's permission, the entity access, or edit access to a named field is missing |
 | 404 | no resource answers the method for the type, or no such entity |
 | 406 | `_format` names a format the resource does not serve |
 | 415 | the `Content-Type` names a format the resource does not read |

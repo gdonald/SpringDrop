@@ -1,0 +1,7 @@
+data:
+  name: "field_tags"
+  entityTypeId: "node"
+  type: "entity_reference"
+  cardinality: -1
+  settings:
+    target_type: "taxonomy_term"

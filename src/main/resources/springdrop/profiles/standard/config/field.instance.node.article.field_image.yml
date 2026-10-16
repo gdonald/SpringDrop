@@ -1,0 +1,17 @@
+data:
+  fieldName: "field_image"
+  entityTypeId: "node"
+  bundle: "article"
+  label: "Image"
+  description: ""
+  required: false
+  defaultValue: null
+  settings:
+    file_extensions: "png gif jpg jpeg"
+    max_filesize: 0
+    alt_field: true
+    alt_field_required: true
+    title_field: false
+    min_resolution: ""
+    max_resolution: ""
+    widget: "image_image"

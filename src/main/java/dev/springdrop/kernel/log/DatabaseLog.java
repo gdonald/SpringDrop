@@ -85,6 +85,15 @@ public class DatabaseLog implements LogBackend {
         return dsl.selectDistinct(TYPE).from(ACTIVITY_LOG).orderBy(TYPE).fetch(TYPE);
     }
 
+    /** Removes all but the newest events, keeping as many as given. */
+    public void keepNewest(int rows) {
+        Long oldestKept = dsl.select(LOG_ID).from(ACTIVITY_LOG).orderBy(LOG_ID.desc()).offset(rows - 1).limit(1)
+                .fetchOne(LOG_ID);
+        if (oldestKept != null) {
+            dsl.deleteFrom(ACTIVITY_LOG).where(LOG_ID.lt(oldestKept)).execute();
+        }
+    }
+
     /** Removes every event kept. */
     public void clear() {
         dsl.deleteFrom(ACTIVITY_LOG).execute();

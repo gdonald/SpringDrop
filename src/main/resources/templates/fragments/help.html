@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- The help for the page, on a page not drawn in a theme layout, where the help block shows it instead. -->
+<div th:fragment="help" class="container pt-3" th:if="${pageHelp != null and !pageHelp.text().isEmpty()}">
+  <div class="alert alert-info page-help mb-0" role="note" th:text="${pageHelp.text()}">Help.</div>
+</div>
+</body>
+</html>

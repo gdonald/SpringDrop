@@ -1,9 +1,49 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<!-- Edit controls render as buttons, never as outline-style buttons. -->
+<!-- The shared parts of an admin listing. Row actions and local actions render as buttons, never as outline-style
+     buttons, and Edit is always a button. A listing's table carries the admin-listing class. -->
+
 <th:block th:fragment="edit(href)">
-  <a th:href="${href}" class="btn btn-secondary btn-sm">Edit</a>
+  <a th:href="${href}" class="btn btn-secondary btn-sm" data-row-action="edit">Edit</a>
+</th:block>
+
+<th:block th:fragment="delete(href)">
+  <a th:href="${href}" class="btn btn-danger btn-sm" data-row-action="delete">Delete</a>
+</th:block>
+
+<th:block th:fragment="operation(label, href)">
+  <a th:href="${href}" class="btn btn-secondary btn-sm" data-row-action="operation" th:text="${label}">Manage</a>
+</th:block>
+
+<th:block th:fragment="destructive(label, href)">
+  <a th:href="${href}" class="btn btn-danger btn-sm" data-row-action="destructive" th:text="${label}">Remove</a>
+</th:block>
+
+<!-- A row's main choice, such as placing the block the row offers. -->
+<th:block th:fragment="choose(label, href)">
+  <a th:href="${href}" class="btn btn-primary btn-sm" data-row-action="choose" th:text="${label}">Place block</a>
+</th:block>
+
+<!-- A button for adding to the listing, such as Add content, above the listing. -->
+<th:block th:fragment="localAction(label, href)">
+  <p class="admin-local-actions"><a th:href="${href}" class="btn btn-primary" data-local-action
+                                    th:text="${label}">Add</a></p>
+</th:block>
+
+<!-- The secondary tab bar of the pages that share a listing, such as Content, Comments, and Media. -->
+<th:block th:fragment="localTasks(tabs)">
+  <ul class="nav nav-tabs mb-3 admin-local-tasks" th:if="${tabs != null and !tabs.isEmpty()}">
+    <li class="nav-item" th:each="tab : ${tabs}">
+      <a class="nav-link" th:classappend="${tab.active} ? 'active' : ''"
+         th:attr="aria-current=${tab.active} ? 'page' : null" th:href="${tab.url}" th:text="${tab.label}">Content</a>
+    </li>
+  </ul>
+</th:block>
+
+<!-- What a listing says when it has nothing to list. -->
+<th:block th:fragment="empty(message)">
+  <p class="text-body-secondary admin-listing-empty" th:text="${message}">There is nothing here yet.</p>
 </th:block>
 </body>
 </html>

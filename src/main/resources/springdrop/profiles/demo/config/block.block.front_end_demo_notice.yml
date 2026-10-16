@@ -1,0 +1,11 @@
+data:
+  id: "front_end_demo_notice"
+  theme: "front-end"
+  region: "highlighted"
+  plugin: "custom_html"
+  label: "Demo site notice"
+  labelDisplay: false
+  weight: -10
+  settings:
+    body: "<div class=\"alert alert-warning\" role=\"note\">This is a demo site with sample content, for trying SpringDrop out. It is not for production.</div>"
+  visibility: []

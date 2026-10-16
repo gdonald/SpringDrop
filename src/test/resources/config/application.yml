@@ -3,3 +3,9 @@ springdrop:
   cron:
     # A scheduled run would start cron jobs in the middle of unrelated tests.
     schedule: "-"
+  config:
+    # Tests export to the build directory, never to the checkout's sync directory.
+    sync-directory: build/config-sync
+  install:
+    # The suite sets its site up itself; the installer test turns this off.
+    assume-installed: true

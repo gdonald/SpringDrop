@@ -13,6 +13,10 @@
     <div class="col-lg-6">
       <h1 class="display-6">500</h1>
       <p class="lead">Something went wrong.</p>
+      <p class="error-message text-start" th:if="${errorMessage != null}" th:text="${errorMessage}">
+        IllegalStateException: The cache is not ready.</p>
+      <pre class="error-trace text-start small border rounded p-2" th:if="${errorTrace != null}"
+           th:text="${errorTrace}">at dev.springdrop...</pre>
       <a href="/" class="btn btn-primary">Back to home</a>
     </div>
   </div>

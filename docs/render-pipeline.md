@@ -184,10 +184,11 @@ token, which belongs to one session, when a page for someone not signed in start
 session, or when a shell holds a placeholder that is not named. The nonce the page's
 inline scripts carry is replaced with the one minted for each request it answers.
 
-A kept page is used until one of its tags is invalidated, or for at most
-`springdrop.cache.page-max-age`, ten minutes unless that says otherwise. The limit
-covers what a page shows without tags of its own, such as entities referenced from a
-teaser, its tabs, and its breadcrumb.
+A kept page is used until one of its tags is invalidated, or for at most the page cache
+maximum age in the [performance settings](site-settings.md#performance), which a site that
+has not saved them takes from `springdrop.cache.page-max-age`, ten minutes unless that says
+otherwise. A maximum age of 0 keeps no page. The limit covers what a page shows without
+tags of its own, such as entities referenced from a teaser, its tabs, and its breadcrumb.
 
 ## Streaming placeholders
 
@@ -229,11 +230,14 @@ module's `init` functions, `bundleAssets` bundles and minifies it with esbuild f
 bundle with the first 16 hex digits of its SHA-256 and records it in
 `springdrop/assets.properties`. The site imports that file as config.
 
-With `springdrop.assets.aggregate` on, as the `prod` profile sets it, `assets.url` gives
-the bundle's address, `/assets/springdrop.<hash>.js`, for every module. The bundle is
-served as public and immutable with a `Cache-Control` max age of a year, since a change to any
-module gives it a new name. Aggregation on with no bundle named stops the site at start.
-With it off, each module is loaded from its own address.
+With aggregation on, `assets.url` gives the bundle's address,
+`/assets/springdrop.<hash>.js`, for every module. Whether it is on is read on each request
+from the [performance settings](site-settings.md#performance), which a site that has not
+saved them takes from `springdrop.assets.aggregate`, as the `prod` profile sets it. The
+bundle is served as public and immutable with a `Cache-Control` max age of a year, since a
+change to any module gives it a new name. `springdrop.assets.aggregate` on with no bundle
+named stops the site at start. With aggregation off, or no bundle built, each module is
+loaded from its own address.
 
 ## The theme layer
 

@@ -39,6 +39,7 @@ import dev.springdrop.kernel.theme.PageChrome;
 import dev.springdrop.kernel.theme.Tab;
 import dev.springdrop.kernel.validation.ConstraintViolation;
 import dev.springdrop.kernel.web.EntityNotFoundException;
+import dev.springdrop.kernel.theme.Messenger;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -111,6 +112,7 @@ public class NodeController {
     private final RenderService renderService;
     private final ActivityLog log;
     private final LanguageManager languages;
+    private final Messenger messenger;
 
     public NodeController(
             NodeTypeManager types,
@@ -131,7 +133,9 @@ public class NodeController {
             NodePublishingOptions options,
             RenderService renderService,
             ActivityLog log,
-            LanguageManager languages) {
+            LanguageManager languages,
+            Messenger messenger) {
+        this.messenger = messenger;
         this.types = types;
         this.nodes = nodes;
         this.entityAccess = entityAccess;
@@ -280,6 +284,7 @@ public class NodeController {
         nodes.delete(id);
         log.channel(LOG_CHANNEL).notice("{type}: deleted {title}.", Map.of("type", node.bundle(),
                 "title", node.label()));
+        messenger.success(typeLabel(node.bundle()) + " " + node.label() + " has been deleted.");
         return "redirect:/";
     }
 
@@ -353,7 +358,14 @@ public class NodeController {
         options.saveMenuLink(saved, submitted, who);
         this.log.channel(LOG_CHANNEL).notice(live.isEmpty() ? "{type}: added {title}." : "{type}: updated {title}.",
                 Map.of("type", saved.bundle(), "title", saved.label()));
+        messenger.success(typeLabel(saved.bundle()) + " " + saved.label()
+                + (live.isEmpty() ? " has been created." : " has been updated."));
         return "redirect:" + NodeEntityType.path(saved.id());
+    }
+
+    /** The content type's name, as a status message names the node's kind. */
+    private String typeLabel(String bundle) {
+        return types.find(bundle).map(NodeType::label).orElse(bundle);
     }
 
     private boolean hasPattern(EntityData node) {

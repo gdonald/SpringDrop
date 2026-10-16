@@ -1,0 +1,16 @@
+dependencies:
+  config:
+  - "field.instance.node.page.body"
+data:
+  entityTypeId: "node"
+  bundle: "page"
+  mode: "default"
+  slots:
+    body:
+      fieldName: "body"
+      handler: "text_default"
+      weight: 0
+      settings: {}
+  hiddenLabels:
+  - "body"
+  disabled: []

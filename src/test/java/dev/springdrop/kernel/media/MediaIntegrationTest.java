@@ -440,7 +440,7 @@ class MediaIntegrationTest extends AbstractIntegrationTest {
                 .containsEntry(FileItem.FILE_EXTENSIONS, "txt rtf pdf doc docx odt xls xlsx ods ppt pptx odp csv");
         assertThat(media.sources().get(RemoteVideoSource.ID).sourceFieldInstanceSettings()).isEmpty();
         assertThat(media.sources().get(ImageSource.ID).sourceFieldStorageSettings())
-                .containsEntry(FileItem.URI_SCHEME, FileSchemes.PUBLIC);
+                .doesNotContainKey(FileItem.URI_SCHEME);
     }
 
     private static Authentication holding(long accountId, String... granted) {

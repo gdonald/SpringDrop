@@ -104,7 +104,7 @@ class RestIntegrationTest extends AbstractIntegrationTest {
     private static RequestPostProcessor client(String... extra) {
         List<String> granted = new ArrayList<>(List.of(NodePermissions.ACCESS_CONTENT,
                 NodePermissions.create(ARTICLE), NodePermissions.editOwn(ARTICLE), NodePermissions.deleteOwn(ARTICLE),
-                NodePermissions.VIEW_OWN_UNPUBLISHED));
+                NodePermissions.VIEW_OWN_UNPUBLISHED, NodePermissions.ADMINISTER_NODES));
         for (String method : RestResourceConfig.ALL_METHODS) {
             granted.add(RestResourceConfig.permission(method, NodeEntityType.ID));
         }
@@ -193,6 +193,37 @@ class RestIntegrationTest extends AbstractIntegrationTest {
 
         assertThat(send(delete(NODES + "/" + id), client()).getStatus()).isEqualTo(204);
         assertThat(nodes.find(id)).isEmpty();
+    }
+
+    @Test
+    void aFieldThePersonMayNotEditIsRefused() throws Exception {
+        long id = article("Spring schedule", true, 5L);
+        RequestPostProcessor editor = user(new AccountPrincipal(5L, "editor", "", true,
+                List.of(NodePermissions.ACCESS_CONTENT, NodePermissions.editOwn(ARTICLE),
+                        RestResourceConfig.permission("PATCH", NodeEntityType.ID))));
+
+        MockHttpServletResponse refused = send(patch(NODES + "/" + id).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"fields\": {\"sticky\": true}}"), editor);
+
+        assertThat(refused.getStatus()).isEqualTo(403);
+        assertThat(json(refused).get("message").asString()).isEqualTo("You may not edit the field sticky.");
+        assertThat(nodes.find(id).orElseThrow().fields().get(NodeEntityType.STICKY)).isNotEqualTo(true);
+    }
+
+    @Test
+    void aFieldThePersonMayNotViewIsLeftOut() throws Exception {
+        resources.save(new RestResourceConfig("user", List.of(RestResourceConfig.GET), List.of("json")));
+        RequestPostProcessor first = user(new AccountPrincipal(UserAccount.ADMINISTRATOR_ID, "admin", "", true,
+                List.of()));
+
+        RequestPostProcessor someoneElse = user(new AccountPrincipal(6L, "reader", "", true,
+                List.of("administer user", RestResourceConfig.permission("GET", "user"))));
+        String path = EntityRestController.PATH + "/user/" + UserAccount.ADMINISTRATOR_ID;
+
+        JsonNode own = json(send(get(path), first));
+        assertThat(own.get("fields").has("mail")).isTrue();
+        assertThat(own.get("fields").has("password_hash")).isFalse();
+        assertThat(json(send(get(path), someoneElse)).get("fields").has("mail")).isFalse();
     }
 
     @Test

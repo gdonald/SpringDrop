@@ -1,0 +1,5 @@
+data:
+  id: "account"
+  label: "User account menu"
+  description: "Signing in and out, and the pages an account keeps to itself."
+  locked: true

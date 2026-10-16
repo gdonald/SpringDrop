@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.JSONB;
@@ -23,7 +24,8 @@ import tools.jackson.databind.node.ObjectNode;
  * Typed configuration object store. Config objects are stored as {@code jsonb}
  * keyed by name and deserialized into the caller's type, which serves as the
  * schema. Environment overrides are layered on read without mutating the stored
- * value, and a {@link ConfigChangedEvent} is published on every save.
+ * value, and a {@link ConfigChangedEvent} is published on every save. Every
+ * object has a uuid, made when it is first saved and kept from then on.
  */
 @Component
 public class ConfigStore {
@@ -31,6 +33,7 @@ public class ConfigStore {
     private static final Table<?> CONFIG = table("config");
     private static final Field<String> NAME = field("name", SQLDataType.VARCHAR);
     private static final Field<JSONB> DATA = field("data", SQLDataType.JSONB);
+    private static final Field<UUID> UUID_FIELD = field("uuid", SQLDataType.UUID);
 
     private final DSLContext dsl;
     private final ObjectMapper objectMapper;
@@ -76,6 +79,34 @@ public class ConfigStore {
                 .where(NAME.like(prefix + ".%"))
                 .orderBy(NAME)
                 .fetch(NAME);
+    }
+
+    /** An object as it is stored: its uuid and its value, without overrides. */
+    public record StoredConfig(UUID uuid, JsonNode data) {
+    }
+
+    /** Every stored object by name, in name order. */
+    public Map<String, StoredConfig> everything() {
+        Map<String, StoredConfig> everything = new LinkedHashMap<>();
+        dsl.select(NAME, UUID_FIELD, DATA).from(CONFIG).orderBy(NAME).fetch().forEach(row -> everything.put(
+                row.get(NAME), new StoredConfig(row.get(UUID_FIELD), objectMapper.readTree(row.get(DATA).data()))));
+        return everything;
+    }
+
+    /** Saves an object under the uuid it was exported with. */
+    public void saveImported(String name, JsonNode value, UUID uuid) {
+        JSONB json = JSONB.valueOf(objectMapper.writeValueAsString(value));
+        dsl.insertInto(CONFIG).columns(NAME, DATA, UUID_FIELD).values(name, json, uuid)
+                .onConflict(NAME).doUpdate().set(DATA, json).set(UUID_FIELD, uuid)
+                .execute();
+        events.publishEvent(new ConfigChangedEvent(name));
+    }
+
+    /** Moves an object to a new name, keeping its value and uuid. */
+    public void rename(String from, String to) {
+        dsl.update(CONFIG).set(NAME, to).where(NAME.eq(from)).execute();
+        events.publishEvent(new ConfigChangedEvent(from));
+        events.publishEvent(new ConfigChangedEvent(to));
     }
 
     public void delete(String name) {

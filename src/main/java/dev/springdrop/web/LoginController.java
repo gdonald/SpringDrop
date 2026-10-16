@@ -12,8 +12,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
- * The sign-in page. The form posts to the path the security layer watches, so
- * the credentials are checked before any controller sees them.
+ * The sign-in and sign-out pages. Each form posts to the path the security
+ * layer watches, so the credentials are checked, and the session ended, before
+ * any controller sees the request.
  */
 @Controller
 public class LoginController {
@@ -41,6 +42,13 @@ public class LoginController {
         model.addAttribute("message", message(error, loggedOut));
         model.addAttribute("formMarkup", renderer.render(loginForm(destination)));
         return "user/login";
+    }
+
+    /** A page asking to sign out, whose button posts to the path the security layer signs out on. */
+    @GetMapping(SecurityConfig.LOGOUT_PATH)
+    public String confirmLogout(Model model) {
+        model.addAttribute("action", SecurityConfig.LOGOUT_PATH);
+        return "user/logout";
     }
 
     private static String message(String error, String loggedOut) {

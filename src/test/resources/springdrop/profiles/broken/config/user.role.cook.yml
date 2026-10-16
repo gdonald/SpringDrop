@@ -1,0 +1,6 @@
+data:
+  id: "cook"
+  label: "Cook"
+  weight: "heavy"
+  permissions: []
+  administrator: false

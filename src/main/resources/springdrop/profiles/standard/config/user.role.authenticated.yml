@@ -1,0 +1,12 @@
+data:
+  id: "authenticated"
+  label: "Signed-in visitor"
+  weight: 1
+  permissions:
+  - "access content"
+  - "access comments"
+  - "post comments"
+  - "skip comment approval"
+  - "edit own comments"
+  - "use text format basic_html"
+  administrator: false

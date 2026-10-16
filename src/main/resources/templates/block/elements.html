@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
+<div th:replace="~{fragments/toolbar :: toolbar}"></div>
+<div th:replace="~{fragments/messages :: messages}"></div>
+<div th:replace="~{fragments/help :: help}"></div>
 
 <div th:fragment="branding" class="site-branding">
   <a class="fs-4 text-decoration-none" href="/" rel="home" th:text="${siteName}">SpringDrop</a>

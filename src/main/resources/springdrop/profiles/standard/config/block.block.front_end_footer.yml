@@ -1,0 +1,10 @@
+data:
+  id: "front_end_footer"
+  theme: "front-end"
+  region: "footer"
+  plugin: "system_menu_block:footer"
+  label: "Footer"
+  labelDisplay: false
+  weight: 0
+  settings: {}
+  visibility: []

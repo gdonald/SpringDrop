@@ -1,0 +1,6 @@
+data:
+  name: "ingredients"
+  entityTypeId: "node"
+  type: "string"
+  cardinality: 1
+  settings: {}
